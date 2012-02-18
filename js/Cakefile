@@ -1,0 +1,5 @@
+fs = require 'fs'
+option '-o','--output [DIR]','directory of the compiled code'
+
+task 'build:parser','build a file to js',(options)->
+  console.log "execute the task",options.output

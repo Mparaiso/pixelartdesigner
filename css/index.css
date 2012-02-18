@@ -1,0 +1,77 @@
+/*
+    Document   : index
+    Created on : 14 févr. 2012, 21:56:52
+    Author     : mark prades
+    Description:
+        Purpose of the stylesheet follows.
+*/
+.nav{
+  width:160px;
+}
+.nav button:hover{
+  background:#BBB;
+}
+.nav button:active{
+  background:#888;
+  color:#EEE;
+}
+.nav button{
+  display:inline-block;
+  background:#EEE;
+  border:1px solid #AAA;
+  width:150px;
+}
+body{
+  font-family: sans-serif;
+}
+canvas{
+  border: 1px solid #AAA;
+}
+#target{
+  
+  display: inline-block;
+  cursor: crosshair;
+}
+#target._16{
+  width:390px;
+}
+#target._32{
+  width:755px;
+}
+#colorSelector,#left{
+  width: 70px;
+  display: inline-block;
+}
+#colorSelector .color{
+  width:20px;
+  height:20px;
+  display: inline-block;
+  border:1px solid #BBB;
+  margin:3px;
+  padding:0;
+}
+#colorSelector .color:hover{
+  cursor: pointer;
+  border:1px dashed #111;
+}
+.inline{
+  display:inline-block;
+  vertical-align:top;
+  margin-right:20px;
+  padding:0;
+}
+.cell{
+  width:20px;
+  height:20px;
+  margin:-3px 1px 0px 0px;
+  padding: 0;
+  line-height: 0;
+  display: inline-block;
+  border:1px solid #DDD;
+}
+.cell:hover{
+  border: 1px dashed #AAA;
+}
+.emptyCell{
+  background:url("/lib/img/faviconbuilder/emptycell.gif") ;
+}
