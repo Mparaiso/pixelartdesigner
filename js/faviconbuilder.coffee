@@ -304,6 +304,7 @@ class Main
     @colorSelectorModel = new App.Models.ColorSelector()
     @gridModel = new App.Models.Grid()
     @canvasPreviewModel = new App.Models.CanvasPreview($canvasPreview,@gridModel)
+    @factorSelectorModel = new App.Models.FactorSelector($factorSelector)
     @menuModel = new App.Models.Menu(new App.Utils.DefaultMenu().items,$menu)
     App.Models.Application.favIconGridModel = @gridModel
     ### CONTROLLERS ###
@@ -313,6 +314,7 @@ class Main
     @colorSelectorView = new App.Views.ColorSelector($colorSelector,@colorSelectorModel)
     @colorSelectorView.eventDispatcher.addListener("colorchange",@oncolorchange)
     @canvasPreviewView = new App.Views.CanvasPreview(@canvasPreviewModel)
+    @factorSelectorView = new App.Views.FactorSelector(@factorSelectorModel)
     @gridView = new App.Views.Grid($target,@gridModel)
     @gridView.setPenColor(@applicationModel.currentColor)
     @menuView = new App.Views.Menu(@menuModel)
@@ -363,4 +365,3 @@ class Main
     @applicationView.render()
 window?.onload = ->
   window?.main = new Main()
-

@@ -600,6 +600,7 @@ Main = (function() {
     this.colorSelectorModel = new App.Models.ColorSelector();
     this.gridModel = new App.Models.Grid();
     this.canvasPreviewModel = new App.Models.CanvasPreview($canvasPreview, this.gridModel);
+    this.factorSelectorModel = new App.Models.FactorSelector($factorSelector);
     this.menuModel = new App.Models.Menu(new App.Utils.DefaultMenu().items, $menu);
     App.Models.Application.favIconGridModel = this.gridModel;
     /* CONTROLLERS
@@ -610,6 +611,7 @@ Main = (function() {
     this.colorSelectorView = new App.Views.ColorSelector($colorSelector, this.colorSelectorModel);
     this.colorSelectorView.eventDispatcher.addListener("colorchange", this.oncolorchange);
     this.canvasPreviewView = new App.Views.CanvasPreview(this.canvasPreviewModel);
+    this.factorSelectorView = new App.Views.FactorSelector(this.factorSelectorModel);
     this.gridView = new App.Views.Grid($target, this.gridModel);
     this.gridView.setPenColor(this.applicationModel.currentColor);
     this.menuView = new App.Views.Menu(this.menuModel);
