@@ -1,0 +1,15 @@
+CACHE MANIFEST
+#
+CACHE
+index.html
+js/faviconbuilder.js
+css/index.css
+img/html5-badge-h-graphics-storage.png 
+#
+NETWORK
+http://www.w3.org/html/logo/badge/html5-badge-h-graphics-storage.png img/html5-badge-h-graphics-storage.png 
+#
+FALLBACK
+img/emptycell.gif  /lib/img/faviconbuilder/emptycell.gif 
+http://www.w3.org/html/logo/badge/html5-badge-h-graphics-storage.png img/html5-badge-h-graphics-storage.png 
+

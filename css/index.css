@@ -1,5 +1,6 @@
 /* ksuFAVICON BUILDER stylecheet */
-h1,h2,h3,h4,h5,h6,div,p{
+h1,h2,h3,h4,h5,h6,div,p,img{
+border:none;
 margin:0;
 padding:0;
 }
@@ -104,5 +105,5 @@ canvas{
   border: 1px dashed #AAA;
 }
 .emptyCell{
-  background:url("/lib/img/faviconbuilder/emptycell.gif"), url("../img/emptycell.gif");
+  background: url("../img/emptycell.gif") , url("/lib/img/faviconbuilder/emptycell.gif");
 }
