@@ -39,7 +39,10 @@ App = {
 App.Utils.DefaultColors = (function() {
 
   function DefaultColors() {
-    this.colors = [new App.Models.Color(), new App.Models.Color("White", "#FFF"), new App.Models.Color("Gray2", "#DDD"), new App.Models.Color("Gray1", "#AAA"), new App.Models.Color("Gray2", "#777"), new App.Models.Color("Black", "#000"), new App.Models.Color("Red", "#990000"), new App.Models.Color("Red", "#FF0000"), new App.Models.Color("Red", "#F99"), new App.Models.Color("Red", "#FDD"), new App.Models.Color("Green", "#090"), new App.Models.Color("Green", "#0F0"), new App.Models.Color("Green", "#9F9"), new App.Models.Color("Green", "#DFD"), new App.Models.Color("Blue", "#000099"), new App.Models.Color("Blue", "#0000FF"), new App.Models.Color("Blue", "#99F"), new App.Models.Color("Blue", "#DDF"), new App.Models.Color("Yellow", "#FFFF00"), new App.Models.Color("Yellow", "#F90"), new App.Models.Color("Cyan", "#00FFFF"), new App.Models.Color("Cyan", "#099"), new App.Models.Color("Magenta", "#FF00FF"), new App.Models.Color("Magenta", "#909")];
+    this.colors = [new App.Models.Color("Eraser", ""), new App.Models.Color("White", "#FFF"), new App.Models.Color("Gray2", "#DDD"), new App.Models.Color("Gray1", "#AAA"), new App.Models.Color("Gray2", "#777"), new App.Models.Color("Black", "#000"), new App.Models.Color("Red", "#900"), new App.Models.Color("Red", "#F00"), new App.Models.Color("Red", "#F99"), new App.Models.Color("Red", "#FDD"), new App.Models.Color("Green", "#090"), new App.Models.Color("Green", "#0F0"), new App.Models.Color("Green", "#9F9"), new App.Models.Color("Green", "#DFD"), new App.Models.Color("Blue", "#009"), new App.Models.Color("Blue", "#00F"), new App.Models.Color("Blue", "#99F"), new App.Models.Color("Blue", "#DDF"), new App.Models.Color("Yellow", "#FF0"), new App.Models.Color("Yellow", "#F90"), new App.Models.Color("Cyan", "#0FF"), new App.Models.Color("Cyan", "#099"), new App.Models.Color("Magenta", "#F0F"), new App.Models.Color("Magenta", "#909")];
+    this.colors.sort(function(a, b) {
+      return a.color < b.color;
+    });
   }
 
   return DefaultColors;
@@ -433,9 +436,14 @@ App.Views.ColorSelector = (function() {
     var i, _ref,
       _this = this;
     this.children = [];
+    this.currentColor = new App.Views.Color(App.Models.Application.prototype.currentColor);
     this.el.innerHTML = "";
+    this.h4Element = document.createElement("h4");
+    this.h4Element.innerHTML = "Current Color";
+    this.el.appendChild(this.h4Element);
+    this.el.appendChild(this.currentColor.render().el);
+    this.el.innerHTML += "<h4>Color swatch</h4>";
     for (i = 0, _ref = this.model.colors.length; 0 <= _ref ? i < _ref : i > _ref; 0 <= _ref ? i++ : i--) {
-      this.currentColor = new App.Views.Color(App.Models.Application.prototype.currentColor);
       this.children[i] = new App.Views.Color(this.model.colors[i]);
       this.el.appendChild(this.children[i].render().el);
       this.children[i].el.onclick = function(e) {
@@ -446,10 +454,6 @@ App.Views.ColorSelector = (function() {
         return _this.render();
       };
     }
-    this.h4Element = document.createElement("h4");
-    this.h4Element.innerHTML = "Current Color";
-    this.el.appendChild(this.h4Element);
-    this.el.appendChild(this.currentColor.render().el);
     return this;
   };
 
@@ -499,10 +503,12 @@ App.Views.FactorSelector = (function() {
 
   function FactorSelector(model) {
     this.model = model;
+    this.eventDispatcher = new App.Utils.EventDispatcher(this);
   }
 
   FactorSelector.prototype.render = function() {
-    var i, _i, _len, _ref;
+    var i, _i, _len, _ref,
+      _this = this;
     this.el = "<p>Zoom preview by :</p>";
     _ref = this.model.selectors;
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
@@ -511,7 +517,10 @@ App.Views.FactorSelector = (function() {
     }
     this.model.targetId.innerHTML = this.el;
     this.model.targetId.onclick = function(e) {
-      return console.log(e.target, "factorSelector");
+      if (e.target.name === "factor") {
+        _this.model.factor = parseInt(e.target.value);
+        return _this.eventDispatcher.dispatch(new App.Utils.Event("selectfactor"), e.target.value);
+      }
     };
     return this;
   };
@@ -579,6 +588,7 @@ App.Controllers.Application = (function() {
 Main = (function() {
 
   function Main() {
+    this.selecFactor = __bind(this.selecFactor, this);
     this.updateViews = __bind(this.updateViews, this);
     this.restoreFromLocal = __bind(this.restoreFromLocal, this);
     this.savetolocal = __bind(this.savetolocal, this);
@@ -630,6 +640,7 @@ Main = (function() {
     this.menuView.eventDispatcher.addListener("emptygrid", this.emptygrid);
     this.menuView.eventDispatcher.addListener("savetolocal", this.savetolocal);
     this.menuView.eventDispatcher.addListener("restorefromlocal", this.restoreFromLocal);
+    this.factorSelectorView.eventDispatcher.addListener("selectfactor", this.selecFactor);
     this.gridView.divTargetId.onmousedown = function(e) {
       return _this.gridView.eventDispatcher.dispatch(new App.Utils.Event("drawmodechange"), true);
     };
@@ -684,6 +695,11 @@ Main = (function() {
 
   Main.prototype.updateViews = function() {
     return this.applicationView.render();
+  };
+
+  Main.prototype.selecFactor = function(e) {
+    this.canvasPreviewModel.factor = parseInt(e.datas);
+    return this.updateViews();
   };
 
   return Main;

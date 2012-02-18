@@ -34,31 +34,32 @@ class App.Utils.DefaultColors
   constructor:->
     @colors =
       [
-        new App.Models.Color()
+        new App.Models.Color("Eraser","")
         new App.Models.Color("White","#FFF")
         new App.Models.Color("Gray2","#DDD")
         new App.Models.Color("Gray1","#AAA")
         new App.Models.Color("Gray2","#777")
         new App.Models.Color("Black","#000")
-        new App.Models.Color("Red","#990000")
-        new App.Models.Color("Red","#FF0000")
+        new App.Models.Color("Red","#900")
+        new App.Models.Color("Red","#F00")
         new App.Models.Color("Red","#F99")
         new App.Models.Color("Red","#FDD")
         new App.Models.Color("Green","#090")
         new App.Models.Color("Green","#0F0")
         new App.Models.Color("Green","#9F9")
         new App.Models.Color("Green","#DFD")
-        new App.Models.Color("Blue","#000099")
-        new App.Models.Color("Blue","#0000FF")
+        new App.Models.Color("Blue","#009")
+        new App.Models.Color("Blue","#00F")
         new App.Models.Color("Blue","#99F")
         new App.Models.Color("Blue","#DDF")
-        new App.Models.Color("Yellow","#FFFF00")
+        new App.Models.Color("Yellow","#FF0")
         new App.Models.Color("Yellow","#F90")
-        new App.Models.Color("Cyan","#00FFFF")
+        new App.Models.Color("Cyan","#0FF")
         new App.Models.Color("Cyan","#099")
-        new App.Models.Color("Magenta","#FF00FF")
+        new App.Models.Color("Magenta","#F0F")
         new App.Models.Color("Magenta","#909")
       ]
+    @colors.sort (a,b)->  a.color< b.color
 
 class App.Utils.Event
   constructor:(@type)->
@@ -207,20 +208,19 @@ class App.Views.ColorSelector
     @eventDispatcher =new App.Utils.EventDispatcher()
   render:->
     @children = []
+    @currentColor = new App.Views.Color(App.Models.Application::currentColor)
     @el.innerHTML = ""
-    for i in [0...@model.colors.length]
-      @currentColor = new App.Views.Color(App.Models.Application::currentColor)
-      @children[i] = new App.Views.Color(@model.colors[i])
-      @el.appendChild(@children[i].render().el)
-      @children[i].el.onclick = (e)=>
-        @eventDispatcher.dispatch(new App.Utils.Event("colorchange"),{"color":e.target.style.backgroundColor,"title":e.target.title})
-        #App.Models.Application::currentColor.color = e.target.style.backgroundColor
-        #App.Models.Application::currentColor.title = e.target.title
-        @render()
     @h4Element = document.createElement("h4")
     @h4Element.innerHTML = "Current Color"
     @el.appendChild(@h4Element)
     @el.appendChild(@currentColor.render().el)
+    @el.innerHTML+="<h4>Color swatch</h4>"
+    for i in [0...@model.colors.length]
+      @children[i] = new App.Views.Color(@model.colors[i])
+      @el.appendChild(@children[i].render().el)
+      @children[i].el.onclick = (e)=>
+        @eventDispatcher.dispatch(new App.Utils.Event("colorchange"),{"color":e.target.style.backgroundColor,"title":e.target.title})
+        @render()
     return this
 
 class App.Views.CanvasPreview
@@ -251,13 +251,16 @@ class App.Views.CanvasPreview
 
 class App.Views.FactorSelector
   constructor:(@model)->
+    @eventDispatcher = new App.Utils.EventDispatcher(this)
   render:->
     @el = "<p>Zoom preview by :</p>"
     for i in @model.selectors
       @el+="<input type='radio' name='factor' #{"checked" unless i!= @model.factor}  value='#{i}' /> x #{i} <br/>"
     @model.targetId.innerHTML = @el
-    @model.targetId.onclick = (e)->
-      console.log e.target,"factorSelector"
+    @model.targetId.onclick = (e)=>
+      unless e.target.name != "factor"
+        @model.factor = parseInt(e.target.value)
+        @eventDispatcher.dispatch(new App.Utils.Event("selectfactor"),e.target.value )
     return this
 
 class App.Views.Menu
@@ -331,6 +334,7 @@ class Main
     @menuView.eventDispatcher.addListener("emptygrid",@emptygrid)
     @menuView.eventDispatcher.addListener("savetolocal",@savetolocal)
     @menuView.eventDispatcher.addListener("restorefromlocal",@restoreFromLocal)
+    @factorSelectorView.eventDispatcher.addListener("selectfactor",@selecFactor)
     @gridView.divTargetId.onmousedown = (e)=>
       @gridView.eventDispatcher.dispatch(new App.Utils.Event("drawmodechange"),true)
     @gridView.divTargetId.onmouseup = (e)=>
@@ -365,5 +369,8 @@ class Main
       @updateViews()
   updateViews:=>
     @applicationView.render()
+  selecFactor:(e)=>
+    @canvasPreviewModel.factor = parseInt(e.datas)
+    @updateViews()
 window?.onload = ->
   window?.main = new Main()

@@ -45,6 +45,7 @@ Purpose of the stylesheet follows.
 }
 body{
   font-family:Helvetica,'Arial Narrow', sans-serif;
+  font-size:13px;
   padding:0;
   margin:0;
 
@@ -64,7 +65,7 @@ canvas{
   width:755px;
 }
 #colorSelector,#left{
-  width: 70px;
+  width: 100px;
   display: inline-block;
 }
 #colorSelector .color{
