@@ -258,8 +258,9 @@ App.Models.CanvasPreview = (function() {
 
 App.Models.FactorSelector = (function() {
 
-  function FactorSelector(targetId, selectors) {
+  function FactorSelector(targetId, factor, selectors) {
     this.targetId = targetId;
+    this.factor = factor;
     this.selectors = selectors != null ? selectors : [1, 2, 3, 4];
   }
 
@@ -501,22 +502,23 @@ App.Views.FactorSelector = (function() {
   }
 
   FactorSelector.prototype.render = function() {
-    var i, _i, _len, _ref, _ref2;
-    this.el = "";
+    var i, _i, _len, _ref;
+    this.el = "<p>Zoom preview by :</p>";
     _ref = this.model.selectors;
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       i = _ref[_i];
-      this.el += "<input type='radio' name='factor' value=" + i + "/> x " + i + " <br/>";
+      this.el += "<input type='radio' name='factor' " + (i === this.model.factor ? "checked" : void 0) + "  value='" + i + "' /> x " + i + " <br/>";
     }
-    if ((_ref2 = this.model.targetDiv) != null) _ref2.innerHTML = this.el;
+    this.model.targetId.innerHTML = this.el;
+    this.model.targetId.onclick = function(e) {
+      return console.log(e.target, "factorSelector");
+    };
     return this;
   };
 
   return FactorSelector;
 
 })();
-
-x;
 
 App.Views.Menu = (function() {
 
@@ -600,7 +602,7 @@ Main = (function() {
     this.colorSelectorModel = new App.Models.ColorSelector();
     this.gridModel = new App.Models.Grid();
     this.canvasPreviewModel = new App.Models.CanvasPreview($canvasPreview, this.gridModel);
-    this.factorSelectorModel = new App.Models.FactorSelector($factorSelector);
+    this.factorSelectorModel = new App.Models.FactorSelector($factorSelector, this.canvasPreviewModel.factor);
     this.menuModel = new App.Models.Menu(new App.Utils.DefaultMenu().items, $menu);
     App.Models.Application.favIconGridModel = this.gridModel;
     /* CONTROLLERS
@@ -618,6 +620,7 @@ Main = (function() {
     this.applicationView.addChild(this.gridView);
     this.applicationView.addChild(this.colorSelectorView);
     this.applicationView.addChild(this.canvasPreviewView);
+    this.applicationView.addChild(this.factorSelectorView);
     this.applicationView.addChild(this.menuView);
     this.applicationView.render();
     /* EVENTS

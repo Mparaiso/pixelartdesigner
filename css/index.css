@@ -1,10 +1,32 @@
 /*
-    Document   : index
-    Created on : 14 févr. 2012, 21:56:52
-    Author     : mark prades
-    Description:
-        Purpose of the stylesheet follows.
-*/
+Document   : index
+Created on : 14 févr. 2012, 21:56:52
+Author     : mark prades
+Description:
+Purpose of the stylesheet follows.
+ */
+#header{
+  margin:0;
+  padding:0;
+  height:70px;
+  color:#EEE;
+  background: #111;
+}
+#header h1{
+  width:90%;
+  height:50%;
+  padding-top:15px;
+  margin-top:0;
+  margin-bottom:auto;
+  margin-left:auto;
+  margin-right:auto;
+  font-variant:small-caps;
+}
+#wrapper{
+  margin-left:auto;
+  margin-right:auto;
+  width:90%;
+}
 .nav{
   width:160px;
 }
@@ -22,13 +44,16 @@
   width:150px;
 }
 body{
-  font-family: sans-serif;
+  font-family:Helvetica,'Arial Narrow', sans-serif;
+  padding:0;
+  margin:0;
+
 }
 canvas{
   border: 1px solid #AAA;
 }
 #target{
-  
+
   display: inline-block;
   cursor: crosshair;
 }

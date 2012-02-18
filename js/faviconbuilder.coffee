@@ -127,7 +127,7 @@ class App.Models.CanvasPreview
   constructor:(@targetId,@gridModel,@factor=4)->
 
 class App.Models.FactorSelector
-  constructor:(@targetId,@selectors=[1,2,3,4])->
+  constructor:(@targetId,@factor,@selectors=[1,2,3,4])->
     
 class App.Models.Menu
   constructor:(@items=[],@targetId)->
@@ -252,12 +252,13 @@ class App.Views.CanvasPreview
 class App.Views.FactorSelector
   constructor:(@model)->
   render:->
-    @el = ""
+    @el = "<p>Zoom preview by :</p>"
     for i in @model.selectors
-      @el+="<input type='radio' name='factor' value=#{i}/> x #{i} <br/>"
-    @model.targetDiv?.innerHTML = @el
+      @el+="<input type='radio' name='factor' #{"checked" unless i!= @model.factor}  value='#{i}' /> x #{i} <br/>"
+    @model.targetId.innerHTML = @el
+    @model.targetId.onclick = (e)->
+      console.log e.target,"factorSelector"
     return this
-x #{i} <br/>"
 
 class App.Views.Menu
   constructor:(@model)->
@@ -304,7 +305,7 @@ class Main
     @colorSelectorModel = new App.Models.ColorSelector()
     @gridModel = new App.Models.Grid()
     @canvasPreviewModel = new App.Models.CanvasPreview($canvasPreview,@gridModel)
-    @factorSelectorModel = new App.Models.FactorSelector($factorSelector)
+    @factorSelectorModel = new App.Models.FactorSelector($factorSelector,@canvasPreviewModel.factor)
     @menuModel = new App.Models.Menu(new App.Utils.DefaultMenu().items,$menu)
     App.Models.Application.favIconGridModel = @gridModel
     ### CONTROLLERS ###
@@ -321,6 +322,7 @@ class Main
     @applicationView.addChild(@gridView)
     @applicationView.addChild(@colorSelectorView)
     @applicationView.addChild(@canvasPreviewView)
+    @applicationView.addChild(@factorSelectorView)
     @applicationView.addChild(@menuView)
     @applicationView.render() # render all child views
     ### EVENTS ###
