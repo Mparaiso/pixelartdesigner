@@ -126,6 +126,9 @@ class App.Models.ColorSelector
 class App.Models.CanvasPreview
   constructor:(@targetId,@gridModel,@factor=4)->
 
+class App.Models.FactorSelector
+  constructor:(@targetId,@selectors=[1,2,3,4])->
+    
 class App.Models.Menu
   constructor:(@items=[],@targetId)->
   addItem:(item)->
@@ -168,7 +171,7 @@ class App.Views.Grid
     @eventDispatcher.dispatch(new App.Utils.Event("faviconrender"),@)
   fillCell:(e)->
     @gridModel.grid[parseInt(e.currentTarget.dataset.row)][parseInt(e.currentTarget.dataset.column)].color = @pen.color.color # App.Models.Application::currentColor.color
-    @render()
+    @eventDispatcher.dispatch(new App.Utils.Event("updateviews"),@)
   setDrawMode:(event)=>
     @drawMode = event.datas
   setPenColor:(color)=>
@@ -246,6 +249,16 @@ class App.Views.CanvasPreview
     @el=@model.targetId.innerHTML
     return this
 
+class App.Views.FactorSelector
+  constructor:(@model)->
+  render:->
+    @el = ""
+    for i in @model.selectors
+      @el+="<input type='radio' name='factor' value=#{i}/> x #{i} <br/>"
+    @model.targetDiv?.innerHTML = @el
+    return this
+x #{i} <br/>"
+
 class App.Views.Menu
   constructor:(@model)->
     @eventDispatcher = new App.Utils.EventDispatcher()
@@ -283,6 +296,7 @@ class Main
     $canvasPreview = document.getElementById("canvasPreview")
     $colorSelector = document.getElementById("colorSelector")
     $menu = document.getElementById("menu")
+    $factorSelector = document.getElementById("factorSelector")
     title = "Fav icon builder"
     defaultColor = "#000000"
     ### MODELS ###
@@ -318,7 +332,7 @@ class Main
     @gridView.divTargetId.onmouseup = (e)=>
       @gridView.eventDispatcher.dispatch(new App.Utils.Event("drawmodechange"),false)
     @gridView.eventDispatcher.addListener("faviconrender",@renderCanvasPreview)
-    
+    @gridView.eventDispatcher.addListener("updateviews",@updateViews)
   renderCanvasPreview:(e)=>
     @canvasPreviewView.render()
   oncolorchange:(e)=>
@@ -344,7 +358,9 @@ class Main
       @gridModel.grid    = gridModel.grid
       @gridModel.rows    = gridModel.rows
       @gridModel.columns = gridModel.columns
-      @applicationView.render()
-
+      @updateViews()
+  updateViews:=>
+    @applicationView.render()
 window?.onload = ->
   window?.main = new Main()
+

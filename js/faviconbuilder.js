@@ -256,6 +256,17 @@ App.Models.CanvasPreview = (function() {
 
 })();
 
+App.Models.FactorSelector = (function() {
+
+  function FactorSelector(targetId, selectors) {
+    this.targetId = targetId;
+    this.selectors = selectors != null ? selectors : [1, 2, 3, 4];
+  }
+
+  return FactorSelector;
+
+})();
+
 App.Models.Menu = (function() {
 
   function Menu(items, targetId) {
@@ -337,7 +348,7 @@ App.Views.Grid = (function() {
 
   Grid.prototype.fillCell = function(e) {
     this.gridModel.grid[parseInt(e.currentTarget.dataset.row)][parseInt(e.currentTarget.dataset.column)].color = this.pen.color.color;
-    return this.render();
+    return this.eventDispatcher.dispatch(new App.Utils.Event("updateviews"), this);
   };
 
   Grid.prototype.setDrawMode = function(event) {
@@ -483,6 +494,30 @@ App.Views.CanvasPreview = (function() {
 
 })();
 
+App.Views.FactorSelector = (function() {
+
+  function FactorSelector(model) {
+    this.model = model;
+  }
+
+  FactorSelector.prototype.render = function() {
+    var i, _i, _len, _ref, _ref2;
+    this.el = "";
+    _ref = this.model.selectors;
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      i = _ref[_i];
+      this.el += "<input type='radio' name='factor' value=" + i + "/> x " + i + " <br/>";
+    }
+    if ((_ref2 = this.model.targetDiv) != null) _ref2.innerHTML = this.el;
+    return this;
+  };
+
+  return FactorSelector;
+
+})();
+
+x;
+
 App.Views.Menu = (function() {
 
   function Menu(model) {
@@ -542,6 +577,7 @@ App.Controllers.Application = (function() {
 Main = (function() {
 
   function Main() {
+    this.updateViews = __bind(this.updateViews, this);
     this.restoreFromLocal = __bind(this.restoreFromLocal, this);
     this.savetolocal = __bind(this.savetolocal, this);
     this.emptygrid = __bind(this.emptygrid, this);
@@ -549,12 +585,13 @@ Main = (function() {
     this.exportCanvas = __bind(this.exportCanvas, this);
     this.oncolorchange = __bind(this.oncolorchange, this);
     this.renderCanvasPreview = __bind(this.renderCanvasPreview, this);
-    var $canvasPreview, $colorSelector, $menu, $target, defaultColor, title,
+    var $canvasPreview, $colorSelector, $factorSelector, $menu, $target, defaultColor, title,
       _this = this;
     $target = document.getElementById("target");
     $canvasPreview = document.getElementById("canvasPreview");
     $colorSelector = document.getElementById("colorSelector");
     $menu = document.getElementById("menu");
+    $factorSelector = document.getElementById("factorSelector");
     title = "Fav icon builder";
     defaultColor = "#000000";
     /* MODELS
@@ -595,6 +632,7 @@ Main = (function() {
       return _this.gridView.eventDispatcher.dispatch(new App.Utils.Event("drawmodechange"), false);
     };
     this.gridView.eventDispatcher.addListener("faviconrender", this.renderCanvasPreview);
+    this.gridView.eventDispatcher.addListener("updateviews", this.updateViews);
   }
 
   Main.prototype.renderCanvasPreview = function(e) {
@@ -635,8 +673,12 @@ Main = (function() {
       this.gridModel.grid = gridModel.grid;
       this.gridModel.rows = gridModel.rows;
       this.gridModel.columns = gridModel.columns;
-      return this.applicationView.render();
+      return this.updateViews();
     }
+  };
+
+  Main.prototype.updateViews = function() {
+    return this.applicationView.render();
   };
 
   return Main;
