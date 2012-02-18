@@ -90,12 +90,15 @@ class App.Utils.DefaultMenu
     {label:"Save to local",action:"savetolocal",title:"Save icon to local storage (not available in all browers !!) \n Click on restore to load the saved icon."}
     {label:"Restore from local",action:"restorefromlocal",title:"Info :\nRestore previously saved icon.",datas:{}}
   ]
+
 ### MODELS ###
 class App.Models.Color
   constructor:(@title="Eraser",@color=null,@alpha=1)->
 
 class App.Models.Application
-  currentColor : new App.Models.Color("Black","#000000")
+  constructor:->
+    @children=[]
+  currentColor : new App.Models.Color("Black","#000000",1)
   favIconGridModel : null
 
 class App.Models.Cell
@@ -114,6 +117,9 @@ class App.Models.Grid
       for j in [0... @columns]
         console.log @grid[i][j]
         @grid[i][j]?= new  App.Models.Cell()
+  fillCell:(params)->
+    @grid[params.row][params.column].color = params.color.color
+    @grid[params.row][params.column].alpha = 1
   emptyGrid:->
     for i in [0...@rows]
       @grid.push []
@@ -150,18 +156,17 @@ class App.Views.Grid
     console.log "App.Views.Grid.render()"
     @divTargetId.innerHTML = ""
     @divTargetId.className = " #{@divTargetId.classes } _#{@gridModel.columns}"
+    @el = ""
     for row in [0...@gridModel.rows]
       for column in [0...@gridModel.columns]
-        cell = document.createElement("div")
-        cell.className+=" #{@cellStyle}"
+        element = " <div name='cell' "
         if @gridModel.grid[row][column].color != null  and @gridModel.grid[row][column].color != ""
-          cell.style.backgroundColor = @gridModel.grid[row][column].color
+          element+= " style='background-color:#{@gridModel.grid[row][column].color}' "
         else
-          cell.className+=" #{@emptyCellStyle}"
-        cell.dataset?= {}
-        cell.dataset.row = row
-        cell.dataset.column = column
-        @divTargetId.appendChild(cell)
+          element+= " class='#{@emptyCellStyle}' "
+        element+= " data-row='#{row}' data-column='#{column}' "
+        element+= " ></div> "
+        ###
         cell.onmouseover  = (e)=>
           if @drawMode == true
             @fillCell(e)
@@ -169,7 +174,17 @@ class App.Views.Grid
           @fillCell(e)
         cell.onmousedown = (e)=>
           @fillCell(e)
-    @eventDispatcher.dispatch(new App.Utils.Event("faviconrender"),@)
+        ###
+        @el += element
+    @divTargetId.innerHTML += @el
+    @divTargetId.onmouseup =(e)=>
+      @drawMode = false
+    @divTargetId.onmousemove = @divTargetId.onmousedown = (e)=>
+      if e.type == "mousedown" then @drawMode = true
+      if e.target.getAttribute("name")=="cell" and @drawMode == true
+        @eventDispatcher.dispatch(new App.Utils.Event("clickcell"),{tool:"pen",width:2,color:@pen.color,row:e.target.getAttribute("data-row"),column:e.target.getAttribute("data-column")})
+      return false
+    return this
   fillCell:(e)->
     @gridModel.grid[parseInt(e.currentTarget.dataset.row)][parseInt(e.currentTarget.dataset.column)].color = @pen.color.color # App.Models.Application::currentColor.color
     @eventDispatcher.dispatch(new App.Utils.Event("updateviews"),@)
@@ -312,7 +327,6 @@ class Main
     @menuModel = new App.Models.Menu(new App.Utils.DefaultMenu().items,$menu)
     App.Models.Application.favIconGridModel = @gridModel
     ### CONTROLLERS ###
-    #@applicationController = new App.Controllers.Application(@applicationModel)
     ### VIEWS ###
     @applicationView = new App.Views.Application($target,@applicationModel)
     @colorSelectorView = new App.Views.ColorSelector($colorSelector,@colorSelectorModel)
@@ -335,12 +349,12 @@ class Main
     @menuView.eventDispatcher.addListener("savetolocal",@savetolocal)
     @menuView.eventDispatcher.addListener("restorefromlocal",@restoreFromLocal)
     @factorSelectorView.eventDispatcher.addListener("selectfactor",@selecFactor)
-    @gridView.divTargetId.onmousedown = (e)=>
-      @gridView.eventDispatcher.dispatch(new App.Utils.Event("drawmodechange"),true)
-    @gridView.divTargetId.onmouseup = (e)=>
-      @gridView.eventDispatcher.dispatch(new App.Utils.Event("drawmodechange"),false)
     @gridView.eventDispatcher.addListener("faviconrender",@renderCanvasPreview)
     @gridView.eventDispatcher.addListener("updateviews",@updateViews)
+    @gridView.eventDispatcher.addListener("clickcell",@clickcell)
+  clickcell:(e)=>
+    @gridModel.fillCell(e.datas)
+    @updateViews()
   renderCanvasPreview:(e)=>
     @canvasPreviewView.render()
   oncolorchange:(e)=>
@@ -354,7 +368,7 @@ class Main
     @gridModel.rows = e.datas.rows
     @gridModel.columns= e.datas.columns
     @gridModel.fillGridBlank()
-    @gridView.render()
+    @applicationView.render()
   emptygrid:=>
     @gridModel.emptyGrid()
     @gridView.render()

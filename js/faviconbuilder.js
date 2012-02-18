@@ -167,9 +167,11 @@ App.Models.Color = (function() {
 
 App.Models.Application = (function() {
 
-  function Application() {}
+  function Application() {
+    this.children = [];
+  }
 
-  Application.prototype.currentColor = new App.Models.Color("Black", "#000000");
+  Application.prototype.currentColor = new App.Models.Color("Black", "#000000", 1);
 
   Application.prototype.favIconGridModel = null;
 
@@ -213,6 +215,11 @@ App.Models.Grid = (function() {
       }).call(this));
     }
     return _results;
+  };
+
+  Grid.prototype.fillCell = function(params) {
+    this.grid[params.row][params.column].color = params.color.color;
+    return this.grid[params.row][params.column].alpha = 1;
   };
 
   Grid.prototype.emptyGrid = function() {
@@ -318,36 +325,52 @@ App.Views.Grid = (function() {
   }
 
   Grid.prototype.render = function() {
-    var cell, column, row, _ref, _ref2,
+    var column, element, row, _ref, _ref2,
       _this = this;
     console.log("App.Views.Grid.render()");
     this.divTargetId.innerHTML = "";
     this.divTargetId.className = " " + this.divTargetId.classes + " _" + this.gridModel.columns;
+    this.el = "";
     for (row = 0, _ref = this.gridModel.rows; 0 <= _ref ? row < _ref : row > _ref; 0 <= _ref ? row++ : row--) {
       for (column = 0, _ref2 = this.gridModel.columns; 0 <= _ref2 ? column < _ref2 : column > _ref2; 0 <= _ref2 ? column++ : column--) {
-        cell = document.createElement("div");
-        cell.className += " " + this.cellStyle;
+        element = " <div name='cell' ";
         if (this.gridModel.grid[row][column].color !== null && this.gridModel.grid[row][column].color !== "") {
-          cell.style.backgroundColor = this.gridModel.grid[row][column].color;
+          element += " style='background-color:" + this.gridModel.grid[row][column].color + "' ";
         } else {
-          cell.className += " " + this.emptyCellStyle;
+          element += " class='" + this.emptyCellStyle + "' ";
         }
-        if (cell.dataset == null) cell.dataset = {};
-        cell.dataset.row = row;
-        cell.dataset.column = column;
-        this.divTargetId.appendChild(cell);
-        cell.onmouseover = function(e) {
-          if (_this.drawMode === true) return _this.fillCell(e);
-        };
-        cell.onclick = function(e) {
-          return _this.fillCell(e);
-        };
-        cell.onmousedown = function(e) {
-          return _this.fillCell(e);
-        };
+        element += " data-row='" + row + "' data-column='" + column + "' ";
+        element += " ></div> ";
+        /*
+                cell.onmouseover  = (e)=>
+                  if @drawMode == true
+                    @fillCell(e)
+                cell.onclick = (e)=>
+                  @fillCell(e)
+                cell.onmousedown = (e)=>
+                  @fillCell(e)
+        */
+        this.el += element;
       }
     }
-    return this.eventDispatcher.dispatch(new App.Utils.Event("faviconrender"), this);
+    this.divTargetId.innerHTML += this.el;
+    this.divTargetId.onmouseup = function(e) {
+      return _this.drawMode = false;
+    };
+    this.divTargetId.onmousemove = this.divTargetId.onmousedown = function(e) {
+      if (e.type === "mousedown") _this.drawMode = true;
+      if (e.target.getAttribute("name") === "cell" && _this.drawMode === true) {
+        _this.eventDispatcher.dispatch(new App.Utils.Event("clickcell"), {
+          tool: "pen",
+          width: 2,
+          color: _this.pen.color,
+          row: e.target.getAttribute("data-row"),
+          column: e.target.getAttribute("data-column")
+        });
+      }
+      return false;
+    };
+    return this;
   };
 
   Grid.prototype.fillCell = function(e) {
@@ -597,8 +620,8 @@ Main = (function() {
     this.exportCanvas = __bind(this.exportCanvas, this);
     this.oncolorchange = __bind(this.oncolorchange, this);
     this.renderCanvasPreview = __bind(this.renderCanvasPreview, this);
-    var $canvasPreview, $colorSelector, $factorSelector, $menu, $target, defaultColor, title,
-      _this = this;
+    this.clickcell = __bind(this.clickcell, this);
+    var $canvasPreview, $colorSelector, $factorSelector, $menu, $target, defaultColor, title;
     $target = document.getElementById("target");
     $canvasPreview = document.getElementById("canvasPreview");
     $colorSelector = document.getElementById("colorSelector");
@@ -641,15 +664,15 @@ Main = (function() {
     this.menuView.eventDispatcher.addListener("savetolocal", this.savetolocal);
     this.menuView.eventDispatcher.addListener("restorefromlocal", this.restoreFromLocal);
     this.factorSelectorView.eventDispatcher.addListener("selectfactor", this.selecFactor);
-    this.gridView.divTargetId.onmousedown = function(e) {
-      return _this.gridView.eventDispatcher.dispatch(new App.Utils.Event("drawmodechange"), true);
-    };
-    this.gridView.divTargetId.onmouseup = function(e) {
-      return _this.gridView.eventDispatcher.dispatch(new App.Utils.Event("drawmodechange"), false);
-    };
     this.gridView.eventDispatcher.addListener("faviconrender", this.renderCanvasPreview);
     this.gridView.eventDispatcher.addListener("updateviews", this.updateViews);
+    this.gridView.eventDispatcher.addListener("clickcell", this.clickcell);
   }
+
+  Main.prototype.clickcell = function(e) {
+    this.gridModel.fillCell(e.datas);
+    return this.updateViews();
+  };
 
   Main.prototype.renderCanvasPreview = function(e) {
     return this.canvasPreviewView.render();
@@ -670,7 +693,7 @@ Main = (function() {
     this.gridModel.rows = e.datas.rows;
     this.gridModel.columns = e.datas.columns;
     this.gridModel.fillGridBlank();
-    return this.gridView.render();
+    return this.applicationView.render();
   };
 
   Main.prototype.emptygrid = function() {

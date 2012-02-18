@@ -1,10 +1,16 @@
-/*
-Document   : index
-Created on : 14 févr. 2012, 21:56:52
-Author     : mark prades
-Description:
-Purpose of the stylesheet follows.
- */
+/* ksuFAVICON BUILDER stylecheet */
+h1,h2,h3,h4,h5,h6,div,p{
+margin:0;
+padding:0;
+}
+h1,h2,h3,h4{
+  margin-top:10px;
+  margin-bottom: 5px;
+}
+h5,h6{
+margin-top: 6px;
+
+}
 #header{
   margin:0;
   padding:0;
@@ -48,7 +54,6 @@ body{
   font-size:13px;
   padding:0;
   margin:0;
-
 }
 canvas{
   border: 1px solid #AAA;
@@ -59,10 +64,10 @@ canvas{
   cursor: crosshair;
 }
 #target._16{
-  width:390px;
+  width:395px;
 }
 #target._32{
-  width:755px;
+  width:775px;
 }
 #colorSelector,#left{
   width: 100px;
@@ -86,18 +91,18 @@ canvas{
   margin-right:20px;
   padding:0;
 }
-.cell{
+#target div{
   width:20px;
   height:20px;
-  margin:-3px 1px 0px 0px;
+  margin:-2px -2px 0px 0px;
   padding: 0;
   line-height: 0;
   display: inline-block;
   border:1px solid #DDD;
 }
-.cell:hover{
+#target div:hover{
   border: 1px dashed #AAA;
 }
 .emptyCell{
-  background:url("/lib/img/faviconbuilder/emptycell.gif") ;
+  background:url("/lib/img/faviconbuilder/emptycell.gif"), url("../img/emptycell.gif");
 }
