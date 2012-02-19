@@ -79,7 +79,7 @@ App.Utils.EventDispatcher = (function() {
 
   EventDispatcher.prototype.dispatch = function(event, datas) {
     var i, _i, _len, _ref, _results;
-    event.target = event.currenTarget = this;
+    event.target = event.currentTarget = this.parent;
     event.datas = datas;
     _ref = this.listeners;
     _results = [];
@@ -111,12 +111,21 @@ App.Utils.DefaultMenu = (function() {
 
   DefaultMenu.prototype.items = [
     {
+      label: "Undo",
+      action: "undo",
+      title: "Restore the grid to the previous state"
+    }, {
+      label: "Redo",
+      action: "redo",
+      title: "Restore the grid to the next state"
+    }, {
       label: "Empty grid",
       action: "emptygrid",
-      title: "Help: \nCreate a new blank grid"
+      title: "Create a new blank grid"
     }, {
       label: "16x16 grid",
       action: "changegridsize",
+      title: 'Change grid size',
       datas: {
         rows: 16,
         columns: 16
@@ -124,6 +133,7 @@ App.Utils.DefaultMenu = (function() {
     }, {
       label: "32x32 grid",
       action: "changegridsize",
+      title: 'Change grid size',
       datas: {
         rows: 32,
         columns: 32
@@ -131,6 +141,7 @@ App.Utils.DefaultMenu = (function() {
     }, {
       label: "Export to png",
       action: "exporttopng",
+      title: "Export image as png in a new window (not available in Internet explorer)",
       datas: {
         param: "whatever"
       }
@@ -141,8 +152,12 @@ App.Utils.DefaultMenu = (function() {
     }, {
       label: "Restore from local",
       action: "restorefromlocal",
-      title: "Info :\nRestore previously saved icon.",
+      title: "Restore previously saved icon.",
       datas: {}
+    }, {
+      label: "thickbox test",
+      action: "showthickbox",
+      title: "Show thick box , just a javascript CSS test , no special functionalities"
     }
   ];
 
@@ -192,9 +207,11 @@ App.Models.Cell = (function() {
 
 App.Models.Grid = (function() {
 
-  function Grid(rows, columns) {
+  function Grid(rows, columns, version, title) {
     this.rows = rows != null ? rows : 16;
     this.columns = columns != null ? columns : 16;
+    this.version = version;
+    this.title = title;
     this.grid = [];
     this.fillGridBlank();
   }
@@ -241,6 +258,17 @@ App.Models.Grid = (function() {
   };
 
   return Grid;
+
+})();
+
+App.Models.Title = (function() {
+
+  function Title(value, targetId) {
+    this.value = value;
+    this.targetId = targetId;
+  }
+
+  return Title;
 
 })();
 
@@ -327,7 +355,6 @@ App.Views.Grid = (function() {
   Grid.prototype.render = function() {
     var column, element, row, _ref, _ref2,
       _this = this;
-    console.log("App.Views.Grid.render()");
     this.divTargetId.innerHTML = "";
     this.divTargetId.className = " " + this.divTargetId.classes + " _" + this.gridModel.columns;
     this.el = "";
@@ -341,26 +368,19 @@ App.Views.Grid = (function() {
         }
         element += " data-row='" + row + "' data-column='" + column + "' ";
         element += " ></div> ";
-        /*
-                cell.onmouseover  = (e)=>
-                  if @drawMode == true
-                    @fillCell(e)
-                cell.onclick = (e)=>
-                  @fillCell(e)
-                cell.onmousedown = (e)=>
-                  @fillCell(e)
-        */
         this.el += element;
       }
     }
     this.divTargetId.innerHTML += this.el;
     this.divTargetId.onmouseup = function(e) {
-      return _this.drawMode = false;
+      _this.drawMode = false;
+      return _this.eventDispatcher.dispatch(new App.Utils.Event("renderpreview"), {});
     };
     this.divTargetId.onmousemove = this.divTargetId.onmousedown = function(e) {
       if (e.type === "mousedown") _this.drawMode = true;
       if (e.target.getAttribute("name") === "cell" && _this.drawMode === true) {
         _this.eventDispatcher.dispatch(new App.Utils.Event("clickcell"), {
+          element: e.target,
           tool: "pen",
           width: 2,
           color: _this.pen.color,
@@ -374,8 +394,15 @@ App.Views.Grid = (function() {
   };
 
   Grid.prototype.fillCell = function(e) {
-    this.gridModel.grid[parseInt(e.currentTarget.dataset.row)][parseInt(e.currentTarget.dataset.column)].color = this.pen.color.color;
-    return this.eventDispatcher.dispatch(new App.Utils.Event("updateviews"), this);
+    var color;
+    color = e.datas.color.color;
+    if (["", void 0].indexOf(color) < 0) {
+      e.datas.element.style.backgroundColor = color;
+      return e.datas.element.className = "";
+    } else {
+      e.datas.element.style.backgroundColor = null;
+      return e.datas.element.className += " " + this.emptyCellStyle;
+    }
   };
 
   Grid.prototype.setDrawMode = function(event) {
@@ -440,6 +467,41 @@ App.Views.Color = (function() {
   };
 
   return Color;
+
+})();
+
+App.Views.Title = (function() {
+
+  function Title(model) {
+    this.model = model;
+    this.eventDispatcher = new App.Utils.EventDispatcher(this);
+  }
+
+  Title.prototype.render = function() {
+    var _this = this;
+    this.el = this.model.value.italics();
+    this.model.targetId.innerHTML = this.el;
+    this.model.targetId.setAttribute("title", "Click here to change the grid title");
+    this.model.targetId.onclick = function(e) {
+      e.currentTarget.setAttribute("contenteditable", true);
+      e.currentTarget.style.border = "1px solid #00EEFF";
+      e.currentTarget.style.borderRadius = "2px";
+      e.currentTarget.style.padding = "2px 5px 2px 5px";
+      return false;
+    };
+    this.model.targetId.onblur = this.model.targetId.onkeypress = function(e) {
+      if (e.type === "keypress" && e.which !== 13) return;
+      e.currentTarget.setAttribute("contenteditable", false);
+      e.currentTarget.style.border = "";
+      _this.model.value = e.currentTarget.innerText.trim() !== "" ? e.currentTarget.innerText.trim() : _this.model.value;
+      _this.eventDispatcher.dispatch(new App.Utils.Event("titlechanged"), _this.model.value);
+      return false;
+    };
+    this.model.onkeypress;
+    return this;
+  };
+
+  return Title;
 
 })();
 
@@ -556,7 +618,7 @@ App.Views.Menu = (function() {
 
   function Menu(model) {
     this.model = model;
-    this.eventDispatcher = new App.Utils.EventDispatcher();
+    this.eventDispatcher = new App.Utils.EventDispatcher(this);
   }
 
   Menu.prototype.render = function() {
@@ -571,10 +633,6 @@ App.Views.Menu = (function() {
       if (button.dataset == null) button.dataset = {};
       button.dataset.id = i;
       this.model.targetId.appendChild(button);
-      /*
-            button.onclick = (e)=>
-              @eventDispatcher.dispatch(new Event(@model.items[i].action),if @model.items[i].datas then @model.items[i].datas else null )
-      */
       button.onclick = (function(e) {
         var action, datas;
         action = _this.model.items[i].action;
@@ -611,6 +669,7 @@ App.Controllers.Application = (function() {
 Main = (function() {
 
   function Main() {
+    this.showThickbox = __bind(this.showThickbox, this);
     this.selecFactor = __bind(this.selecFactor, this);
     this.updateViews = __bind(this.updateViews, this);
     this.restoreFromLocal = __bind(this.restoreFromLocal, this);
@@ -619,25 +678,34 @@ Main = (function() {
     this.changegridsize = __bind(this.changegridsize, this);
     this.exportCanvas = __bind(this.exportCanvas, this);
     this.oncolorchange = __bind(this.oncolorchange, this);
-    this.renderCanvasPreview = __bind(this.renderCanvasPreview, this);
+    this.renderPreview = __bind(this.renderPreview, this);
+    this.titleChange = __bind(this.titleChange, this);
     this.clickcell = __bind(this.clickcell, this);
-    var $canvasPreview, $colorSelector, $factorSelector, $menu, $target, defaultColor, title;
+    var $canvasPreview, $colorSelector, $factorSelector, $menu, $target, $title, defaultColor, title, version;
+    version = 0.1;
     $target = document.getElementById("target");
     $canvasPreview = document.getElementById("canvasPreview");
     $colorSelector = document.getElementById("colorSelector");
     $menu = document.getElementById("menu");
     $factorSelector = document.getElementById("factorSelector");
+    $title = document.getElementById("title");
     title = "Fav icon builder";
     defaultColor = "#000000";
     /* MODELS
     */
     this.applicationModel = new App.Models.Application();
     this.colorSelectorModel = new App.Models.ColorSelector();
-    this.gridModel = new App.Models.Grid();
+    this.gridModel = new App.Models.Grid(16, 16, 0.1, "new grid");
+    this.titleModel = new App.Models.Title("new grid", $title);
     this.canvasPreviewModel = new App.Models.CanvasPreview($canvasPreview, this.gridModel);
     this.factorSelectorModel = new App.Models.FactorSelector($factorSelector, this.canvasPreviewModel.factor);
     this.menuModel = new App.Models.Menu(new App.Utils.DefaultMenu().items, $menu);
-    App.Models.Application.favIconGridModel = this.gridModel;
+    this.applicationModel.colorSelectorModel = this.colorSelectorModel;
+    this.applicationModel.gridModel = this.gridModel;
+    this.applicationModel.titleModel = this.titleModel;
+    this.applicationModel.canvasPreviewModel = this.canvasPreviewModel;
+    this.applicationModel.factorSelectorModel = this.factorSelectorModel;
+    this.applicationModel.menuModel = this.menuModel;
     /* CONTROLLERS
     */
     /* VIEWS
@@ -648,9 +716,11 @@ Main = (function() {
     this.canvasPreviewView = new App.Views.CanvasPreview(this.canvasPreviewModel);
     this.factorSelectorView = new App.Views.FactorSelector(this.factorSelectorModel);
     this.gridView = new App.Views.Grid($target, this.gridModel);
+    this.titleView = new App.Views.Title(this.titleModel);
     this.gridView.setPenColor(this.applicationModel.currentColor);
     this.menuView = new App.Views.Menu(this.menuModel);
     this.applicationView.addChild(this.gridView);
+    this.applicationView.addChild(this.titleView);
     this.applicationView.addChild(this.colorSelectorView);
     this.applicationView.addChild(this.canvasPreviewView);
     this.applicationView.addChild(this.factorSelectorView);
@@ -663,18 +733,24 @@ Main = (function() {
     this.menuView.eventDispatcher.addListener("emptygrid", this.emptygrid);
     this.menuView.eventDispatcher.addListener("savetolocal", this.savetolocal);
     this.menuView.eventDispatcher.addListener("restorefromlocal", this.restoreFromLocal);
+    this.menuView.eventDispatcher.addListener("showthickbox", this.showThickbox);
     this.factorSelectorView.eventDispatcher.addListener("selectfactor", this.selecFactor);
-    this.gridView.eventDispatcher.addListener("faviconrender", this.renderCanvasPreview);
+    this.gridView.eventDispatcher.addListener("renderpreview", this.renderPreview);
     this.gridView.eventDispatcher.addListener("updateviews", this.updateViews);
     this.gridView.eventDispatcher.addListener("clickcell", this.clickcell);
+    this.titleView.eventDispatcher.addListener("titlechanged", this.titleChange);
   }
 
   Main.prototype.clickcell = function(e) {
     this.gridModel.fillCell(e.datas);
+    return this.gridView.fillCell(e);
+  };
+
+  Main.prototype.titleChange = function(e) {
     return this.updateViews();
   };
 
-  Main.prototype.renderCanvasPreview = function(e) {
+  Main.prototype.renderPreview = function(e) {
     return this.canvasPreviewView.render();
   };
 
@@ -712,6 +788,7 @@ Main = (function() {
       this.gridModel.grid = gridModel.grid;
       this.gridModel.rows = gridModel.rows;
       this.gridModel.columns = gridModel.columns;
+      this.gridModel.version = gridModel.version;
       return this.updateViews();
     }
   };
@@ -723,6 +800,10 @@ Main = (function() {
   Main.prototype.selecFactor = function(e) {
     this.canvasPreviewModel.factor = parseInt(e.datas);
     return this.updateViews();
+  };
+
+  Main.prototype.showThickbox = function(e) {
+    return console.log(e, "show thickbox");
   };
 
   return Main;

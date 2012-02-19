@@ -1,8 +1,16 @@
 /* ksuFAVICON BUILDER stylecheet */
+@import url('gradient.css'); /* fond dégradé */
+@import url('messagebox.css'); /* message box */
 h1,h2,h3,h4,h5,h6,div,p,img{
 border:none;
 margin:0;
 padding:0;
+}
+body{
+  font-family:Helvetica,'Arial Narrow', sans-serif;
+  font-size:12px;
+  padding:0;
+  margin:0;
 }
 h1,h2,h3,h4{
   margin-top:10px;
@@ -17,7 +25,6 @@ margin-top: 6px;
   padding:0;
   height:70px;
   color:#EEE;
-  background: #111;
 }
 #header h1{
   width:90%;
@@ -28,6 +35,19 @@ margin-top: 6px;
   margin-left:auto;
   margin-right:auto;
   font-variant:small-caps;
+}
+span.tip{
+  font-weight:lighter;
+  font-size:0.8em;
+  display:inline-block;
+}
+#title{
+  cursor:pointer;
+  margin-right: 5px;
+
+}
+#title:focus{
+  cursor:auto;
 }
 #wrapper{
   margin-left:auto;
@@ -50,12 +70,7 @@ margin-top: 6px;
   border:1px solid #AAA;
   width:150px;
 }
-body{
-  font-family:Helvetica,'Arial Narrow', sans-serif;
-  font-size:13px;
-  padding:0;
-  margin:0;
-}
+
 canvas{
   border: 1px solid #AAA;
 }
@@ -63,6 +78,7 @@ canvas{
 
   display: inline-block;
   cursor: crosshair;
+  font-size: 13px;
 }
 #target._16{
   width:395px;
@@ -105,5 +121,5 @@ canvas{
   border: 1px dashed #AAA;
 }
 .emptyCell{
-  background: url("../img/emptycell.gif") , url("/lib/img/faviconbuilder/emptycell.gif");
+  background:url("/lib/img/faviconbuilder/emptycell.gif");
 }

@@ -74,7 +74,7 @@ class App.Utils.EventDispatcher
       this.listeners.push({"eventName":eventName,"listener":listener})
     dispatch : (event,datas)->
       #throw new Error("event should be an instance of Event") unless event instanceof Event
-      event.target = event.currenTarget =  this
+      event.target = event.currentTarget =  @parent
       event.datas = datas
       for i in this.listeners
         i.listener(event) unless event.type != i.eventName
@@ -83,12 +83,15 @@ class App.Utils.EventDispatcher
 
 class App.Utils.DefaultMenu
   items:[
-    {label:"Empty grid",action:"emptygrid",title:"Help: \nCreate a new blank grid"}
-    {label:"16x16 grid",action:"changegridsize",datas:{rows:16,columns:16}}
-    {label:"32x32 grid",action:"changegridsize",datas:{rows:32,columns:32}}
-    {label:"Export to png",action:"exporttopng",datas:{param:"whatever"}}
+    {label:"Undo",action:"undo",title:"Restore the grid to the previous state"}
+    {label:"Redo",action:"redo",title:"Restore the grid to the next state"}
+    {label:"Empty grid",action:"emptygrid",title:"Create a new blank grid"}
+    {label:"16x16 grid",action:"changegridsize",title:'Change grid size',datas:{rows:16,columns:16}}
+    {label:"32x32 grid",action:"changegridsize",title:'Change grid size',datas:{rows:32,columns:32}}
+    {label:"Export to png",action:"exporttopng",title:"Export image as png in a new window (not available in Internet explorer)",datas:{param:"whatever"}}
     {label:"Save to local",action:"savetolocal",title:"Save icon to local storage (not available in all browers !!) \n Click on restore to load the saved icon."}
-    {label:"Restore from local",action:"restorefromlocal",title:"Info :\nRestore previously saved icon.",datas:{}}
+    {label:"Restore from local",action:"restorefromlocal",title:"Restore previously saved icon.",datas:{}}
+    {label:"thickbox test",action:"showthickbox",title:"Show thick box , just a javascript CSS test , no special functionalities"}
   ]
 
 ### MODELS ###
@@ -107,10 +110,9 @@ class App.Models.Cell
     @alpha=1
 
 class App.Models.Grid
-  constructor:(@rows=16,@columns=16)-> # crée le modèle de grille
+  constructor:(@rows=16,@columns=16,@version,@title)-> # crée le modèle de grille
     @grid = []
     @fillGridBlank()
-
   fillGridBlank:->
     for i in [0...@rows]
       @grid[i] ?= []
@@ -126,6 +128,9 @@ class App.Models.Grid
       for j in [0...@columns]
         @grid[i][j].color = ""
         @grid[i][j].alpha = 1
+
+class App.Models.Title
+  constructor:(@value,@targetId)->
 
 class App.Models.ColorSelector
   constructor:(@colors= new App.Utils.DefaultColors().colors)->
@@ -153,7 +158,6 @@ class App.Views.Grid
     @eventDispatcher.addListener("drawmodechange",@setDrawMode)
     @divTargetId.classes = @divTargetId.className
   render:->
-    console.log "App.Views.Grid.render()"
     @divTargetId.innerHTML = ""
     @divTargetId.className = " #{@divTargetId.classes } _#{@gridModel.columns}"
     @el = ""
@@ -166,28 +170,27 @@ class App.Views.Grid
           element+= " class='#{@emptyCellStyle}' "
         element+= " data-row='#{row}' data-column='#{column}' "
         element+= " ></div> "
-        ###
-        cell.onmouseover  = (e)=>
-          if @drawMode == true
-            @fillCell(e)
-        cell.onclick = (e)=>
-          @fillCell(e)
-        cell.onmousedown = (e)=>
-          @fillCell(e)
-        ###
         @el += element
     @divTargetId.innerHTML += @el
     @divTargetId.onmouseup =(e)=>
       @drawMode = false
+      @eventDispatcher.dispatch(new App.Utils.Event("renderpreview"),{})
     @divTargetId.onmousemove = @divTargetId.onmousedown = (e)=>
       if e.type == "mousedown" then @drawMode = true
       if e.target.getAttribute("name")=="cell" and @drawMode == true
-        @eventDispatcher.dispatch(new App.Utils.Event("clickcell"),{tool:"pen",width:2,color:@pen.color,row:e.target.getAttribute("data-row"),column:e.target.getAttribute("data-column")})
+        @eventDispatcher.dispatch(new App.Utils.Event("clickcell"),{element:e.target,tool:"pen",width:2,color:@pen.color,row:e.target.getAttribute("data-row"),column:e.target.getAttribute("data-column")})
       return false
     return this
-  fillCell:(e)->
-    @gridModel.grid[parseInt(e.currentTarget.dataset.row)][parseInt(e.currentTarget.dataset.column)].color = @pen.color.color # App.Models.Application::currentColor.color
-    @eventDispatcher.dispatch(new App.Utils.Event("updateviews"),@)
+  fillCell:(e)-> # speed up the grid rendering when filling one cell 
+    color = e.datas.color.color
+    if  ["",undefined].indexOf(color) < 0
+      e.datas.element.style.backgroundColor = color
+      e.datas.element.className  = ""
+    else
+      e.datas.element.style.backgroundColor = null
+      e.datas.element.className  += " #{@emptyCellStyle}"
+
+
   setDrawMode:(event)=>
     @drawMode = event.datas
   setPenColor:(color)=>
@@ -215,6 +218,31 @@ class App.Views.Color
     else
       @el.className+=" emptyCell "
     return this
+
+class App.Views.Title
+  constructor:(@model)->
+    @eventDispatcher = new App.Utils.EventDispatcher(this)
+  render:->
+    @el= @model.value.italics()
+    @model.targetId.innerHTML  = @el
+    @model.targetId.setAttribute("title","Click here to change the grid title")
+    @model.targetId.onclick = (e)=>
+      e.currentTarget.setAttribute("contenteditable",true)
+      e.currentTarget.style.border = "1px solid #00EEFF"
+      e.currentTarget.style.borderRadius = "2px"
+      e.currentTarget.style.padding= "2px 5px 2px 5px"
+      return false
+    @model.targetId.onblur =@model.targetId.onkeypress = (e)=>
+      if (e.type == "keypress" and e.which != 13)
+        return
+      e.currentTarget.setAttribute("contenteditable",false)
+      e.currentTarget.style.border = ""
+      @model.value = if e.currentTarget.innerText.trim() != "" then  e.currentTarget.innerText.trim() else @model.value
+      @eventDispatcher.dispatch(new App.Utils.Event("titlechanged"),@model.value)
+      return false
+    @model.onkeypress
+    return this
+
 
 class App.Views.ColorSelector
   constructor:(@el,@model)->
@@ -280,7 +308,7 @@ class App.Views.FactorSelector
 
 class App.Views.Menu
   constructor:(@model)->
-    @eventDispatcher = new App.Utils.EventDispatcher()
+    @eventDispatcher = new App.Utils.EventDispatcher(this)
   render:->
     @model.targetId.innerHTML = ""
     for i in [0...@model.items.length]
@@ -291,10 +319,6 @@ class App.Views.Menu
       button.dataset?= {}
       button.dataset.id = i
       @model.targetId.appendChild(button)
-      ###
-      button.onclick = (e)=>
-        @eventDispatcher.dispatch(new Event(@model.items[i].action),if @model.items[i].datas then @model.items[i].datas else null )
-      ###
       button.onclick = ((e)=>
         action = @model.items[i].action
         datas = @model.items[i].datas
@@ -311,21 +335,30 @@ class App.Controllers.Application
 ### MAIN ###
 class Main
   constructor:->
+    version = 0.1
     $target = document.getElementById("target")
     $canvasPreview = document.getElementById("canvasPreview")
     $colorSelector = document.getElementById("colorSelector")
     $menu = document.getElementById("menu")
     $factorSelector = document.getElementById("factorSelector")
+    $title = document.getElementById "title"
     title = "Fav icon builder"
     defaultColor = "#000000"
     ### MODELS ###
     @applicationModel = new App.Models.Application()
     @colorSelectorModel = new App.Models.ColorSelector()
-    @gridModel = new App.Models.Grid()
+    @gridModel = new App.Models.Grid(16,16,0.1,"new grid")
+    @titleModel = new App.Models.Title("new grid",$title)
     @canvasPreviewModel = new App.Models.CanvasPreview($canvasPreview,@gridModel)
     @factorSelectorModel = new App.Models.FactorSelector($factorSelector,@canvasPreviewModel.factor)
     @menuModel = new App.Models.Menu(new App.Utils.DefaultMenu().items,$menu)
-    App.Models.Application.favIconGridModel = @gridModel
+    @applicationModel.colorSelectorModel = @colorSelectorModel
+    @applicationModel.gridModel = @gridModel
+    @applicationModel.titleModel = @titleModel
+    @applicationModel.canvasPreviewModel = @canvasPreviewModel
+    @applicationModel.factorSelectorModel = @factorSelectorModel
+    @applicationModel.menuModel = @menuModel
+    #App.Models.Application.favIconGridModel = @gridModel
     ### CONTROLLERS ###
     ### VIEWS ###
     @applicationView = new App.Views.Application($target,@applicationModel)
@@ -334,9 +367,11 @@ class Main
     @canvasPreviewView = new App.Views.CanvasPreview(@canvasPreviewModel)
     @factorSelectorView = new App.Views.FactorSelector(@factorSelectorModel)
     @gridView = new App.Views.Grid($target,@gridModel)
+    @titleView = new App.Views.Title(@titleModel)
     @gridView.setPenColor(@applicationModel.currentColor)
     @menuView = new App.Views.Menu(@menuModel)
     @applicationView.addChild(@gridView)
+    @applicationView.addChild(@titleView)
     @applicationView.addChild(@colorSelectorView)
     @applicationView.addChild(@canvasPreviewView)
     @applicationView.addChild(@factorSelectorView)
@@ -348,14 +383,18 @@ class Main
     @menuView.eventDispatcher.addListener("emptygrid",@emptygrid)
     @menuView.eventDispatcher.addListener("savetolocal",@savetolocal)
     @menuView.eventDispatcher.addListener("restorefromlocal",@restoreFromLocal)
+    @menuView.eventDispatcher.addListener("showthickbox",@showThickbox)
     @factorSelectorView.eventDispatcher.addListener("selectfactor",@selecFactor)
-    @gridView.eventDispatcher.addListener("faviconrender",@renderCanvasPreview)
+    @gridView.eventDispatcher.addListener("renderpreview",@renderPreview) # rendercanvas preview
     @gridView.eventDispatcher.addListener("updateviews",@updateViews)
-    @gridView.eventDispatcher.addListener("clickcell",@clickcell)
+    @gridView.eventDispatcher.addListener("clickcell",@clickcell) # user draw on a cell in the grid
+    @titleView.eventDispatcher.addListener("titlechanged",@titleChange) # title of grid edited 
   clickcell:(e)=>
     @gridModel.fillCell(e.datas)
+    @gridView.fillCell(e)
+  titleChange:(e)=>
     @updateViews()
-  renderCanvasPreview:(e)=>
+  renderPreview:(e)=>
     @canvasPreviewView.render()
   oncolorchange:(e)=>
     console.log "oncolorchange" , e.datas.color , e.datas.title
@@ -380,11 +419,14 @@ class Main
       @gridModel.grid    = gridModel.grid
       @gridModel.rows    = gridModel.rows
       @gridModel.columns = gridModel.columns
+      @gridModel.version = gridModel.version
       @updateViews()
   updateViews:=>
     @applicationView.render()
   selecFactor:(e)=>
     @canvasPreviewModel.factor = parseInt(e.datas)
     @updateViews()
+  showThickbox:(e)=>
+    console.log e,"show thickbox"
 window?.onload = ->
   window?.main = new Main()
