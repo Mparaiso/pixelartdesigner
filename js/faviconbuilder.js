@@ -16,6 +16,8 @@
   @description EN
 */
 var App, Main,
+  __hasProp = Object.prototype.hasOwnProperty,
+  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; },
   __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
 
 if (typeof console === "undefined" || console === null) {
@@ -23,6 +25,14 @@ if (typeof console === "undefined" || console === null) {
     log: function() {}
   };
 }
+
+Array.prototype.split = function(index) {
+  var q;
+  if (index < this.length) {
+    q = this.length - index;
+    return this.splice(index, q);
+  }
+};
 
 App = {
   Views: {},
@@ -165,64 +175,95 @@ App.Utils.DefaultMenu = (function() {
 
 })();
 
-/* 
-class App.Utils.Iterator extends Array
-    constructor:->
-      @push i for i in arguments
-      @iter = 0
-    next:->
-       @[++@iter] if @iter < @length-1
-    previous:->
-       @[--@iter] if @iter>0
-    hasNext:->
-      if @[@iter+1]
-        true
-      else
-        false
-    hasPrevious:->
-      if @[@iter-1]
-        true
-      else
-        false
-*/
+App.Utils.Iterator = (function(_super) {
 
-App.Utils.Iterator = (function() {
-  var Iterator;
-  Iterator = function() {
-    var array, iter;
-    array = Array.apply(this, arguments);
-    iter = 0;
-    return {
-      getArray: function() {
-        return array;
-      },
-      getValue: function() {
-        return array[iter];
-      },
-      next: function() {
-        if (iter < array.length - 1) return array[++iter];
-      },
-      previous: function() {
-        if (iter > 0) return array[--iter];
-      },
-      hasNext: function() {
-        if (array[iter + 1]) {
-          return true;
-        } else {
-          return false;
-        }
-      },
-      hasPrevious: function() {
-        if (array[iter - 1]) {
-          return true;
-        } else {
-          return false;
-        }
-      }
-    };
+  __extends(Iterator, _super);
+
+  function Iterator() {
+    var i, _i, _len;
+    for (_i = 0, _len = arguments.length; _i < _len; _i++) {
+      i = arguments[_i];
+      this.push(i);
+    }
+    this.iter = 0;
+  }
+
+  Iterator.prototype.next = function() {
+    if (this.iter < this.length - 1) return this[++this.iter];
   };
+
+  Iterator.prototype.previous = function() {
+    if (this.iter > 0) return this[--this.iter];
+  };
+
+  Iterator.prototype.hasNext = function() {
+    if (this[this.iter + 1]) {
+      return true;
+    } else {
+      return false;
+    }
+  };
+
+  Iterator.prototype.hasPrevious = function() {
+    if (this[this.iter - 1]) {
+      return true;
+    } else {
+      return false;
+    }
+  };
+
   return Iterator;
-})();
+
+})(Array);
+
+/*
+App.Utils.Iterator = do->
+  Iterator = ->
+    array = Array.apply(this,arguments)
+    iter = 0
+    return {
+      getArray:->
+        array
+      getValue:->
+        array[iter]
+      next:->
+        array[++iter] if iter < array.length-1
+      previous:->
+        array[--iter] if iter>0
+      hasNext:->
+        return if array[iter+1] then true else return false
+      hasPrevious:->
+        return  if array[iter-1]then true else return false
+    }
+
+  return Iterator
+
+
+App.Utils.Iterator = do ->
+  Iterator =  ->
+    #Array.apply(this,arguments)
+    this.push(i) for i in arguments
+    iter = 0
+    @reset = ->
+      iter = 0
+    @getIndex = ->
+      iter
+    @getValue= ->
+      this[iter]
+    @next= ->
+      this[++iter] if iter < this.length-1
+    @previous= ->
+      this[--iter] if iter>0
+    @hasNext= ->
+      return if this[iter+1] then true else return false
+    @hasPrevious= ->
+      return  if this[iter-1]then true else return false
+    return this
+
+  Iterator.prototype = new Array()
+  Iterator.prototype.constructor = Array
+  return Iterator
+*/
 
 /* MODELS
 */
@@ -284,7 +325,6 @@ App.Models.Grid = (function() {
         var _base2, _ref2, _ref3, _results2;
         _results2 = [];
         for (j = 0, _ref2 = this.columns; 0 <= _ref2 ? j < _ref2 : j > _ref2; 0 <= _ref2 ? j++ : j--) {
-          console.log(this.grid[i][j]);
           _results2.push((_ref3 = (_base2 = this.grid[i])[j]) != null ? _ref3 : _base2[j] = new App.Models.Cell());
         }
         return _results2;
@@ -343,9 +383,9 @@ App.Models.ColorSelector = (function() {
 
 App.Models.CanvasPreview = (function() {
 
-  function CanvasPreview(targetId, gridModel, factor) {
+  function CanvasPreview(targetId, applicationModel, factor) {
     this.targetId = targetId;
-    this.gridModel = gridModel;
+    this.applicationModel = applicationModel;
     this.factor = factor != null ? factor : 4;
   }
 
@@ -384,6 +424,16 @@ App.Models.Menu = (function() {
 
 })();
 
+App.Models.History = (function() {
+
+  function History(iterator) {
+    this.iterator = iterator != null ? iterator : new App.Utils.Iterator();
+  }
+
+  return History;
+
+})();
+
 /* VIEWS
 */
 
@@ -397,9 +447,9 @@ App.Views.Cell = (function() {
 
 App.Views.Grid = (function() {
 
-  function Grid(divTargetId, gridModel, cellStyle, emptyCellStyle, pen) {
+  function Grid(divTargetId, applicationModel, cellStyle, emptyCellStyle, pen) {
     this.divTargetId = divTargetId;
-    this.gridModel = gridModel != null ? gridModel : new App.Models.Grid();
+    this.applicationModel = applicationModel;
     this.cellStyle = cellStyle != null ? cellStyle : "cell";
     this.emptyCellStyle = emptyCellStyle != null ? emptyCellStyle : "emptyCell";
     this.pen = pen != null ? pen : {};
@@ -412,16 +462,17 @@ App.Views.Grid = (function() {
   }
 
   Grid.prototype.render = function() {
-    var column, element, row, _ref, _ref2,
+    var column, element, gridModel, row, _ref, _ref2,
       _this = this;
+    gridModel = this.applicationModel.gridModel;
     this.divTargetId.innerHTML = "";
-    this.divTargetId.className = " " + this.divTargetId.classes + " _" + this.gridModel.columns;
+    this.divTargetId.className = " " + this.divTargetId.classes + " _" + gridModel.columns;
     this.el = "";
-    for (row = 0, _ref = this.gridModel.rows; 0 <= _ref ? row < _ref : row > _ref; 0 <= _ref ? row++ : row--) {
-      for (column = 0, _ref2 = this.gridModel.columns; 0 <= _ref2 ? column < _ref2 : column > _ref2; 0 <= _ref2 ? column++ : column--) {
+    for (row = 0, _ref = gridModel.rows; 0 <= _ref ? row < _ref : row > _ref; 0 <= _ref ? row++ : row--) {
+      for (column = 0, _ref2 = gridModel.columns; 0 <= _ref2 ? column < _ref2 : column > _ref2; 0 <= _ref2 ? column++ : column--) {
         element = " <div name='cell' ";
-        if (this.gridModel.grid[row][column].color !== null && this.gridModel.grid[row][column].color !== "") {
-          element += " style='background-color:" + this.gridModel.grid[row][column].color + "' ";
+        if (gridModel.grid[row][column].color !== null && gridModel.grid[row][column].color !== "") {
+          element += " style='background-color:" + gridModel.grid[row][column].color + "' ";
         } else {
           element += " class='" + this.emptyCellStyle + "' ";
         }
@@ -433,7 +484,8 @@ App.Views.Grid = (function() {
     this.divTargetId.innerHTML += this.el;
     this.divTargetId.onmouseup = function(e) {
       _this.drawMode = false;
-      return _this.eventDispatcher.dispatch(new App.Utils.Event("renderpreview"), {});
+      _this.eventDispatcher.dispatch(new App.Utils.Event("renderpreview"), {});
+      return _this.eventDispatcher.dispatch(new App.Utils.Event("pushinhistory"), {});
     };
     this.divTargetId.onmousemove = this.divTargetId.onmousedown = function(e) {
       if (e.type === "mousedown") _this.drawMode = true;
@@ -454,6 +506,7 @@ App.Views.Grid = (function() {
 
   Grid.prototype.fillCell = function(e) {
     var color;
+    console.log("fillCell", e);
     color = e.datas.color.color;
     if (["", void 0].indexOf(color) < 0) {
       e.datas.element.style.backgroundColor = color;
@@ -553,8 +606,7 @@ App.Views.Title = (function() {
       e.currentTarget.setAttribute("contenteditable", false);
       e.currentTarget.style.border = "";
       _this.model.value = e.currentTarget.innerText.trim() !== "" ? e.currentTarget.innerText.trim() : _this.model.value;
-      _this.eventDispatcher.dispatch(new App.Utils.Event("titlechanged"), _this.model.value);
-      return false;
+      return _this.eventDispatcher.dispatch(new App.Utils.Event("titlechanged"), _this.model.value);
     };
     this.model.onkeypress;
     return this;
@@ -612,25 +664,26 @@ App.Views.CanvasPreview = (function() {
   }
 
   CanvasPreview.prototype.render = function(localFactor) {
-    var canvas, ctx, i, j, pointHeight, pointWidth, x, y, _ref, _ref2;
+    var canvas, ctx, gridModel, i, j, pointHeight, pointWidth, x, y, _ref, _ref2;
+    gridModel = this.model.applicationModel.gridModel;
     if (localFactor == null) localFactor = this.model.factor;
     this.model.targetId.innerHTML = "";
     canvas = document.createElement("canvas");
-    canvas.setAttribute("width", this.model.factor * this.model.gridModel.rows);
-    canvas.setAttribute("height", this.model.factor * this.model.gridModel.columns);
+    canvas.setAttribute("width", this.model.factor * gridModel.rows);
+    canvas.setAttribute("height", this.model.factor * gridModel.columns);
     this.model.targetId.appendChild(canvas);
     ctx = canvas.getContext("2d");
     pointWidth = pointHeight = this.model.factor;
-    for (i = 0, _ref = this.model.gridModel.rows; 0 <= _ref ? i < _ref : i > _ref; 0 <= _ref ? i++ : i--) {
-      for (j = 0, _ref2 = this.model.gridModel.columns; 0 <= _ref2 ? j < _ref2 : j > _ref2; 0 <= _ref2 ? j++ : j--) {
+    for (i = 0, _ref = gridModel.rows; 0 <= _ref ? i < _ref : i > _ref; 0 <= _ref ? i++ : i--) {
+      for (j = 0, _ref2 = gridModel.columns; 0 <= _ref2 ? j < _ref2 : j > _ref2; 0 <= _ref2 ? j++ : j--) {
         x = j * this.model.factor;
         y = i * this.model.factor;
-        if (this.model.gridModel.grid[i][j].color === null || this.model.gridModel.grid[i][j].color === "") {
+        if (gridModel.grid[i][j].color === null || gridModel.grid[i][j].color === "") {
           ctx.fillStyle = "#FFFFFF";
           ctx.globalAlpha = 0;
         } else {
-          ctx.fillStyle = this.model.gridModel.grid[i][j].color;
-          ctx.globalAlpha = this.model.gridModel.grid[i][j].alpha;
+          ctx.fillStyle = gridModel.grid[i][j].color;
+          ctx.globalAlpha = gridModel.grid[i][j].alpha;
         }
         ctx.fillRect(x, y, this.model.factor, this.model.factor);
       }
@@ -741,8 +794,11 @@ Main = (function() {
     this.renderPreview = __bind(this.renderPreview, this);
     this.titleChange = __bind(this.titleChange, this);
     this.clickcell = __bind(this.clickcell, this);
-    var $canvasPreview, $colorSelector, $factorSelector, $menu, $target, $title, defaultColor, title, version;
-    version = 0.1;
+    this.redo = __bind(this.redo, this);
+    this.undo = __bind(this.undo, this);
+    this.pushInHistory = __bind(this.pushInHistory, this);
+    var $canvasPreview, $colorSelector, $factorSelector, $menu, $target, $title, defaultColor, title;
+    this.version = 0.1;
     this.thickbox = document.getElementById("thickbox");
     $target = document.getElementById("target");
     $canvasPreview = document.getElementById("canvasPreview");
@@ -755,20 +811,19 @@ Main = (function() {
     /* MODELS
     */
     this.applicationModel = new App.Models.Application();
+    this.historyModel = new App.Models.History();
     this.colorSelectorModel = new App.Models.ColorSelector();
-    this.gridModel = new App.Models.Grid(16, 16, 0.1, "new grid");
+    this.applicationModel.gridModel = new App.Models.Grid(16, 16, 0.1, "new grid");
     this.titleModel = new App.Models.Title("new grid", $title);
-    this.canvasPreviewModel = new App.Models.CanvasPreview($canvasPreview, this.gridModel);
+    this.canvasPreviewModel = new App.Models.CanvasPreview($canvasPreview, this.applicationModel);
     this.factorSelectorModel = new App.Models.FactorSelector($factorSelector, this.canvasPreviewModel.factor);
     this.menuModel = new App.Models.Menu(new App.Utils.DefaultMenu().items, $menu);
+    this.applicationModel.historyModel = this.historyModel;
     this.applicationModel.colorSelectorModel = this.colorSelectorModel;
-    this.applicationModel.gridModel = this.gridModel;
     this.applicationModel.titleModel = this.titleModel;
     this.applicationModel.canvasPreviewModel = this.canvasPreviewModel;
     this.applicationModel.factorSelectorModel = this.factorSelectorModel;
     this.applicationModel.menuModel = this.menuModel;
-    /* CONTROLLERS
-    */
     /* VIEWS
     */
     this.applicationView = new App.Views.Application($target, this.applicationModel);
@@ -776,7 +831,7 @@ Main = (function() {
     this.colorSelectorView.eventDispatcher.addListener("colorchange", this.oncolorchange);
     this.canvasPreviewView = new App.Views.CanvasPreview(this.canvasPreviewModel);
     this.factorSelectorView = new App.Views.FactorSelector(this.factorSelectorModel);
-    this.gridView = new App.Views.Grid($target, this.gridModel);
+    this.gridView = new App.Views.Grid($target, this.applicationModel);
     this.titleView = new App.Views.Title(this.titleModel);
     this.gridView.setPenColor(this.applicationModel.currentColor);
     this.menuView = new App.Views.Menu(this.menuModel);
@@ -795,19 +850,51 @@ Main = (function() {
     this.menuView.eventDispatcher.addListener("savetolocal", this.savetolocal);
     this.menuView.eventDispatcher.addListener("restorefromlocal", this.restoreFromLocal);
     this.menuView.eventDispatcher.addListener("showthickbox", this.showThickbox);
+    this.menuView.eventDispatcher.addListener("undo", this.undo);
+    this.menuView.eventDispatcher.addListener("redo", this.redo);
     this.factorSelectorView.eventDispatcher.addListener("selectfactor", this.selecFactor);
     this.gridView.eventDispatcher.addListener("renderpreview", this.renderPreview);
     this.gridView.eventDispatcher.addListener("updateviews", this.updateViews);
     this.gridView.eventDispatcher.addListener("clickcell", this.clickcell);
+    this.gridView.eventDispatcher.addListener("pushinhistory", this.pushInHistory);
     this.titleView.eventDispatcher.addListener("titlechanged", this.titleChange);
+    this.pushInHistory();
   }
 
+  Main.prototype.pushInHistory = function(e) {
+    console.log("push in history", "iter = ", this.historyModel.iterator.iter, "length = ", this.historyModel.iterator.length);
+    if (this.historyModel.iterator.hasNext()) {
+      console.log("iterator has next");
+      console.log(this.historyModel.iterator.split());
+    }
+    this.historyModel.iterator.push(JSON.parse(JSON.stringify(this.applicationModel.gridModel)));
+    this.historyModel.iterator.iter = this.historyModel.iterator.length - 1;
+    return console.log("pushed in history", "iter = ", this.historyModel.iterator.iter, "length = ", this.historyModel.iterator.length);
+  };
+
+  Main.prototype.undo = function(e) {
+    console.log("undo");
+    if (this.historyModel.iterator.hasPrevious()) {
+      this.applicationModel.gridModel.grid = this.historyModel.iterator.previous().grid;
+      return this.updateViews();
+    }
+  };
+
+  Main.prototype.redo = function(e) {
+    console.log("redo");
+    if (this.historyModel.iterator.hasNext()) {
+      this.applicationModel.gridModel.grid = this.historyModel.iterator.next().grid;
+      return this.applicationView.render();
+    }
+  };
+
   Main.prototype.clickcell = function(e) {
-    this.gridModel.fillCell(e.datas);
+    this.applicationModel.gridModel.fillCell(e.datas);
     return this.gridView.fillCell(e);
   };
 
   Main.prototype.titleChange = function(e) {
+    this.applicationModel.gridModel.title = e.datas;
     return this.updateViews();
   };
 
@@ -827,29 +914,38 @@ Main = (function() {
 
   Main.prototype.changegridsize = function(e) {
     console.log("changegridsize", e.datas);
-    this.gridModel.rows = e.datas.rows;
-    this.gridModel.columns = e.datas.columns;
-    this.gridModel.fillGridBlank();
+    this.applicationModel.gridModel.rows = e.datas.rows;
+    this.applicationModel.gridModel.columns = e.datas.columns;
+    this.applicationModel.gridModel.fillGridBlank();
     return this.applicationView.render();
   };
 
   Main.prototype.emptygrid = function() {
-    this.gridModel.emptyGrid();
-    return this.gridView.render();
+    this.applicationModel.gridModel.emptyGrid();
+    return this.applicationView.render();
   };
 
   Main.prototype.savetolocal = function() {
-    return (localStorage["faviconbuilderGrid"] = JSON.stringify(this.gridModel)) && alert("Icon saved to local storage");
+    var backups;
+    backups = [];
+    if (localStorage["faviconbuilderGrid"]) {
+      backups = JSON.parse(localStorage["faviconbuilderGrid"]);
+    }
+    backups.push(this.applicationModel.gridModel);
+    backups.version = this.version;
+    return (localStorage["faviconbuilderGrid"] = JSON.stringify(backups)) && alert("Icon saved to local storage");
   };
 
   Main.prototype.restoreFromLocal = function() {
-    var gridModel;
+    var backups, gridModel;
     if (localStorage["faviconbuilderGrid"] !== null) {
-      gridModel = JSON.parse(localStorage["faviconbuilderGrid"]);
-      this.gridModel.grid = gridModel.grid;
-      this.gridModel.rows = gridModel.rows;
-      this.gridModel.columns = gridModel.columns;
-      this.gridModel.version = gridModel.version;
+      backups = JSON.parse(localStorage["faviconbuilderGrid"]);
+      gridModel = backups[backups.length - 1];
+      this.applicationModel.gridModel.grid = gridModel.grid;
+      this.applicationModel.gridModel.rows = gridModel.rows;
+      this.applicationModel.gridModel.columns = gridModel.columns;
+      this.applicationModel.gridModel.version = gridModel.version;
+      this.applicationModel.titleModel.value = gridModel.title;
       return this.updateViews();
     }
   };
