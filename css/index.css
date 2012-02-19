@@ -53,22 +53,24 @@ span.tip{
   margin-left:auto;
   margin-right:auto;
   width:90%;
+  text-align: center;
 }
 .nav{
   width:160px;
 }
-.nav button:hover{
+.nav input[type=button]:hover{
   background:#BBB;
 }
-.nav button:active{
+.nav input[type=button]:active{
   background:#888;
   color:#EEE;
 }
-.nav button{
+.nav input[type=button]{
   display:inline-block;
   background:#EEE;
   border:1px solid #AAA;
   width:150px;
+  height:20px;
 }
 
 canvas{

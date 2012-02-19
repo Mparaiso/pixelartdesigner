@@ -165,6 +165,65 @@ App.Utils.DefaultMenu = (function() {
 
 })();
 
+/* 
+class App.Utils.Iterator extends Array
+    constructor:->
+      @push i for i in arguments
+      @iter = 0
+    next:->
+       @[++@iter] if @iter < @length-1
+    previous:->
+       @[--@iter] if @iter>0
+    hasNext:->
+      if @[@iter+1]
+        true
+      else
+        false
+    hasPrevious:->
+      if @[@iter-1]
+        true
+      else
+        false
+*/
+
+App.Utils.Iterator = (function() {
+  var Iterator;
+  Iterator = function() {
+    var array, iter;
+    array = Array.apply(this, arguments);
+    iter = 0;
+    return {
+      getArray: function() {
+        return array;
+      },
+      getValue: function() {
+        return array[iter];
+      },
+      next: function() {
+        if (iter < array.length - 1) return array[++iter];
+      },
+      previous: function() {
+        if (iter > 0) return array[--iter];
+      },
+      hasNext: function() {
+        if (array[iter + 1]) {
+          return true;
+        } else {
+          return false;
+        }
+      },
+      hasPrevious: function() {
+        if (array[iter - 1]) {
+          return true;
+        } else {
+          return false;
+        }
+      }
+    };
+  };
+  return Iterator;
+})();
+
 /* MODELS
 */
 
@@ -626,8 +685,9 @@ App.Views.Menu = (function() {
       _this = this;
     this.model.targetId.innerHTML = "";
     for (i = 0, _ref = this.model.items.length; 0 <= _ref ? i < _ref : i > _ref; 0 <= _ref ? i++ : i--) {
-      button = document.createElement("button");
-      button.innerText = this.model.items[i].label;
+      button = document.createElement("input");
+      button.setAttribute("value", this.model.items[i].label);
+      button.setAttribute("type", "button");
       button.setAttribute("id", this.model.items[i].action);
       button.setAttribute("title", this.model.items[i].title);
       if (button.dataset == null) button.dataset = {};
@@ -683,6 +743,7 @@ Main = (function() {
     this.clickcell = __bind(this.clickcell, this);
     var $canvasPreview, $colorSelector, $factorSelector, $menu, $target, $title, defaultColor, title, version;
     version = 0.1;
+    this.thickbox = document.getElementById("thickbox");
     $target = document.getElementById("target");
     $canvasPreview = document.getElementById("canvasPreview");
     $colorSelector = document.getElementById("colorSelector");
@@ -803,7 +864,13 @@ Main = (function() {
   };
 
   Main.prototype.showThickbox = function(e) {
-    return console.log(e, "show thickbox");
+    var _this = this;
+    console.log(e, "show thickbox");
+    this.thickbox.style.visibility = this.thickbox.style.visibility === "hidden" ? "visible" : "hidden";
+    this.thickbox.style.opacity = parseInt(this.thickbox.style.opacity) < 1 ? 1 : 0;
+    return this.thickbox.onclick = function(e) {
+      return _this.showThickbox(e);
+    };
   };
 
   return Main;

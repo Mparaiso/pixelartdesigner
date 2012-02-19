@@ -94,6 +94,49 @@ class App.Utils.DefaultMenu
     {label:"thickbox test",action:"showthickbox",title:"Show thick box , just a javascript CSS test , no special functionalities"}
   ]
 
+### 
+class App.Utils.Iterator extends Array
+    constructor:->
+      @push i for i in arguments
+      @iter = 0
+    next:->
+       @[++@iter] if @iter < @length-1
+    previous:->
+       @[--@iter] if @iter>0
+    hasNext:->
+      if @[@iter+1]
+        true
+      else
+        false
+    hasPrevious:->
+      if @[@iter-1]
+        true
+      else
+        false
+###
+
+
+App.Utils.Iterator = do->
+  Iterator = ->
+    array = Array.apply(this,arguments)
+    iter = 0
+    return {
+      getArray:->
+        array
+      getValue:->
+        array[iter]
+      next:->
+        array[++iter] if iter < array.length-1
+      previous:->
+        array[--iter] if iter>0
+      hasNext:->
+        return if array[iter+1] then true else return false
+      hasPrevious:->
+        return  if array[iter-1]then true else return false
+    }
+
+  return Iterator
+
 ### MODELS ###
 class App.Models.Color
   constructor:(@title="Eraser",@color=null,@alpha=1)->
@@ -312,8 +355,10 @@ class App.Views.Menu
   render:->
     @model.targetId.innerHTML = ""
     for i in [0...@model.items.length]
-      button = document.createElement("button")
-      button.innerText = @model.items[i].label
+      button = document.createElement("input")
+      #button.innerText = @model.items[i].label
+      button.setAttribute("value",@model.items[i].label)
+      button.setAttribute("type","button")
       button.setAttribute("id",@model.items[i].action)
       button.setAttribute("title",@model.items[i].title)
       button.dataset?= {}
@@ -336,6 +381,7 @@ class App.Controllers.Application
 class Main
   constructor:->
     version = 0.1
+    @thickbox = document.getElementById("thickbox")
     $target = document.getElementById("target")
     $canvasPreview = document.getElementById("canvasPreview")
     $colorSelector = document.getElementById("colorSelector")
@@ -428,5 +474,9 @@ class Main
     @updateViews()
   showThickbox:(e)=>
     console.log e,"show thickbox"
+    @thickbox.style.visibility = if @thickbox.style.visibility == "hidden" then "visible" else "hidden"
+    @thickbox.style.opacity = if parseInt(@thickbox.style.opacity)<1 then 1 else 0
+    @thickbox.onclick= (e)=>
+      @showThickbox(e)
 window?.onload = ->
   window?.main = new Main()
