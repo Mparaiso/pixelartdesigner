@@ -405,19 +405,19 @@ App.Models.History = (function() {
 
 App.Models.Toolbox = (function() {
 
-  function Toolbox() {}
+  function Toolbox(tools) {
+    this.tools = tools;
+    this.currentTool = {
+      value: this.tools[0].label
+    };
+  }
 
   return Toolbox;
 
 })();
 
-({
-  constructor: function(tools) {
-    this.tools = tools;
-  }
-  /* VIEWS
-  */
-});
+/* VIEWS
+*/
 
 View = (function() {
 
@@ -427,7 +427,6 @@ View = (function() {
     var child, _base, _results;
     _results = [];
     for (child in this) {
-      console.log(child, "render");
       _results.push(typeof (_base = this[child]).render === "function" ? _base.render() : void 0);
     }
     return _results;
@@ -795,15 +794,17 @@ App.Views.Toolbox = (function(_super) {
     _ref = this.model.tools;
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       tool = _ref[_i];
-      this.el += "<img title='" + tool.title + "' name='" + tool.label + "' " + ((tool.title = this.model.currentTool.value) ? "class='selected'" : "") + " src='" + tool.src + "'/>";
+      this.el += "<img title='" + tool.title + "' name='" + tool.label + "' " + (tool.title === this.model.currentTool.value ? "class='selected'" : "") + " src='" + tool.src + "'/>";
     }
+    this.el += "<br/><h5>" + this.model.currentTool.value + "</h5>";
     this.targetId.onclick = function(e) {
       var name, tagName;
       name = e.target.getAttribute("name");
       tagName = e.target.tagName;
       if (!(!(name != null) && tagName !== "IMG")) {
-        return _this.eventDispatcher.dispatch(new App.Utils.Event("changetool"), name);
+        _this.eventDispatcher.dispatch(new App.Utils.Event("changetool"), name);
       }
+      return false;
     };
     this.targetId.innerHTML = this.el;
     return this;
@@ -848,8 +849,10 @@ Main = (function() {
     this.redo = __bind(this.redo, this);
     this.undo = __bind(this.undo, this);
     this.pushInHistory = __bind(this.pushInHistory, this);
-    "use strict";
+    this.changeTool = __bind(this.changeTool, this);
     var $app, $canvasPreview, $colorSelector, $factorSelector, $menu, $target, $title, $toolbox, defaultColor, title;
+    console.log("favicon builder at " + (new Date()));
+    "use strict";
     this.version = 0.1;
     this.thickbox = document.getElementById("thickbox");
     $app = document.getElementById("app");
@@ -879,6 +882,7 @@ Main = (function() {
     /* VIEWS
     */
     this.view = new App.Views.Application(this.applicationController, $app);
+    this.view.toolbox = new App.Views.Toolbox(this.model.toolbox, $toolbox);
     this.view.colorSelector = new App.Views.ColorSelector($colorSelector, this.model.colorSelector);
     this.view.colorSelector.eventDispatcher.addListener("colorchange", this.oncolorchange);
     this.view.canvasPreview = new App.Views.CanvasPreview(this.model.canvasPreview);
@@ -887,18 +891,10 @@ Main = (function() {
     this.view.title = new App.Views.Title(this.model.title);
     this.view.grid.setPenColor(this.model.currentColor);
     this.view.menu = new App.Views.Menu(this.model.menu);
-    /*
-        @view.addChild(@view.toolbox)
-        @view.addChild(@view.grid)
-        @view.addChild(@view.title)
-        @view.addChild(@view.colorSelector)
-        @view.addChild(@view.canvasPreview)
-        @view.addChild(@view.factorSelector)
-        @view.addChild(@view.menu)
-    */
     this.view.render();
     /* EVENTS
     */
+    this.view.toolbox.eventDispatcher.addListener("changetool", this.changeTool);
     this.view.menu.eventDispatcher.addListener("exporttopng", this.exportCanvas);
     this.view.menu.eventDispatcher.addListener("changegridsize", this.changegridsize);
     this.view.menu.eventDispatcher.addListener("emptygrid", this.emptygrid);
@@ -915,6 +911,11 @@ Main = (function() {
     this.view.title.eventDispatcher.addListener("titlechanged", this.titleChange);
     this.pushInHistory();
   }
+
+  Main.prototype.changeTool = function(e) {
+    this.model.toolbox.currentTool.value = e.datas;
+    return this.view.render();
+  };
 
   Main.prototype.pushInHistory = function(e) {
     if (this.model.history.iterator.hasNext()) {

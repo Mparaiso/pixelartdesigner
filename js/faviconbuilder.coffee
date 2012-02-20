@@ -186,13 +186,13 @@ class App.Models.History
   constructor:(@iterator = new App.Utils.Iterator())->
 
 class App.Models.Toolbox
-constructor:(@tools)->
+  constructor:(@tools)->
+    @currentTool = {value:@tools[0].label}
   
 ### VIEWS ###
 class View
   render:->
     for child of this
-      console.log child,"render"
       @[child].render?()
 
 class App.Views.Cell extends View
@@ -388,11 +388,13 @@ class App.Views.Toolbox extends View
   render:->
     @el = ""
     for tool in @model.tools
-      @el += "<img title='#{tool.title}' name='#{tool.label}' #{if tool.title = @model.currentTool.value then "class='selected'" else "" } src='#{tool.src}'/>"
+      @el += "<img title='#{tool.title}' name='#{tool.label}' #{if tool.title == @model.currentTool.value then "class='selected'" else "" } src='#{tool.src}'/>"
+    @el+="<br/><h5>#{@model.currentTool.value}</h5>"
     @targetId.onclick =(e)=>
       name = e.target.getAttribute("name")
       tagName = e.target.tagName
       @eventDispatcher.dispatch(new App.Utils.Event("changetool"),name) unless not name? and tagName != "IMG"
+      return false
     @targetId.innerHTML = @el
     return this
 
@@ -404,6 +406,7 @@ class App.Controllers.Application
 ### MAIN ###
 class Main
   constructor:->
+    console.log "favicon builder at #{new Date()}"
     "use strict"
     @version = 0.1
     # DOM
@@ -433,7 +436,7 @@ class Main
     @applicationController = new App.Controllers.Application(@model)
     ### VIEWS ###
     @view = new App.Views.Application(@applicationController,$app)
-    #@view.toolbox = new App.Views.Toolbox(@model.toolbox,$toolbox)
+    @view.toolbox = new App.Views.Toolbox(@model.toolbox,$toolbox)
     @view.colorSelector = new App.Views.ColorSelector($colorSelector,@model.colorSelector)
     @view.colorSelector.eventDispatcher.addListener("colorchange",@oncolorchange)
     @view.canvasPreview = new App.Views.CanvasPreview(@model.canvasPreview)
@@ -442,17 +445,9 @@ class Main
     @view.title = new App.Views.Title(@model.title)
     @view.grid.setPenColor(@model.currentColor)
     @view.menu = new App.Views.Menu(@model.menu)
-    ###
-    @view.addChild(@view.toolbox)
-    @view.addChild(@view.grid)
-    @view.addChild(@view.title)
-    @view.addChild(@view.colorSelector)
-    @view.addChild(@view.canvasPreview)
-    @view.addChild(@view.factorSelector)
-    @view.addChild(@view.menu)
-    ###
     @view.render() # render all child views
     ### EVENTS ###
+    @view.toolbox.eventDispatcher.addListener("changetool",@changeTool)
     @view.menu.eventDispatcher.addListener("exporttopng",@exportCanvas)
     @view.menu.eventDispatcher.addListener("changegridsize",@changegridsize)
     @view.menu.eventDispatcher.addListener("emptygrid",@emptygrid)
@@ -470,6 +465,9 @@ class Main
 
     @pushInHistory()
 
+  changeTool:(e)=>
+    @model.toolbox.currentTool.value = e.datas
+    @view.render()
   pushInHistory:(e)=>
     if  @model.history.iterator.hasNext()
       @model.history.iterator.split(@model.history.iterator)

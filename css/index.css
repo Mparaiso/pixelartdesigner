@@ -1,6 +1,7 @@
 /* ksuFAVICON BUILDER stylecheet */
 @import url('gradient.css'); /* fond dégradé */
 @import url('messagebox.css'); /* message box */
+@import url('unselectable.css'); /*unselectable*/
 h1,h2,h3,h4,h5,h6,div,p,img{
 border:none;
 margin:0;
@@ -127,12 +128,17 @@ canvas{
 .emptyCell{
   background:url("/lib/img/faviconbuilder/emptycell.gif");
 }
-
+#toolSelector{
+  height:50px;
+}
 #toolSelector img{
   border:2px solid #666;
+  width:32px;
+  margin-right:6px;
 }
 #toolSelector img:hover{
   border:2px dashed #666;
+  cursor: pointer;
 }
 #toolSelector img.selected{
   border:2px dashed #666;
