@@ -15,7 +15,7 @@
 
   @description EN
 */
-var App, Main,
+var App, Main, View,
   __hasProp = Object.prototype.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; },
   __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
@@ -40,6 +40,7 @@ App = {
   Controllers: {},
   Collections: {},
   Utils: {},
+  Lib: {},
   Ajax: {}
 };
 
@@ -133,22 +134,6 @@ App.Utils.DefaultMenu = (function() {
       action: "emptygrid",
       title: "Create a new blank grid"
     }, {
-      label: "16x16 grid",
-      action: "changegridsize",
-      title: 'Change grid size',
-      datas: {
-        rows: 16,
-        columns: 16
-      }
-    }, {
-      label: "32x32 grid",
-      action: "changegridsize",
-      title: 'Change grid size',
-      datas: {
-        rows: 32,
-        columns: 32
-      }
-    }, {
       label: "Export to png",
       action: "exporttopng",
       title: "Export image as png in a new window (not available in Internet explorer)",
@@ -172,6 +157,33 @@ App.Utils.DefaultMenu = (function() {
   ];
 
   return DefaultMenu;
+
+})();
+
+App.Utils.Toolbox = (function() {
+
+  function Toolbox() {}
+
+  Toolbox.prototype.tools = [
+    {
+      label: "pen",
+      src: "img//pen.png",
+      action: "drawpoint",
+      title: "pen"
+    }, {
+      label: "bucket",
+      src: "img//bucket.png",
+      action: "drawfill",
+      title: "bucket"
+    }, {
+      label: "rubber",
+      src: "img//rubber.png",
+      action: "erase",
+      title: "rubber"
+    }
+  ];
+
+  return Toolbox;
 
 })();
 
@@ -216,55 +228,6 @@ App.Utils.Iterator = (function(_super) {
 
 })(Array);
 
-/*
-App.Utils.Iterator = do->
-  Iterator = ->
-    array = Array.apply(this,arguments)
-    iter = 0
-    return {
-      getArray:->
-        array
-      getValue:->
-        array[iter]
-      next:->
-        array[++iter] if iter < array.length-1
-      previous:->
-        array[--iter] if iter>0
-      hasNext:->
-        return if array[iter+1] then true else return false
-      hasPrevious:->
-        return  if array[iter-1]then true else return false
-    }
-
-  return Iterator
-
-
-App.Utils.Iterator = do ->
-  Iterator =  ->
-    #Array.apply(this,arguments)
-    this.push(i) for i in arguments
-    iter = 0
-    @reset = ->
-      iter = 0
-    @getIndex = ->
-      iter
-    @getValue= ->
-      this[iter]
-    @next= ->
-      this[++iter] if iter < this.length-1
-    @previous= ->
-      this[--iter] if iter>0
-    @hasNext= ->
-      return if this[iter+1] then true else return false
-    @hasPrevious= ->
-      return  if this[iter-1]then true else return false
-    return this
-
-  Iterator.prototype = new Array()
-  Iterator.prototype.constructor = Array
-  return Iterator
-*/
-
 /* MODELS
 */
 
@@ -283,8 +246,14 @@ App.Models.Color = (function() {
 App.Models.Application = (function() {
 
   function Application() {
-    this.children = [];
+    this.update = __bind(this.update, this);    this.children = [];
+    this.eventDispatcher = new App.Utils.EventDispatcher(this);
+    this.eventDispatcher.addListener("modelupdate", this.update);
   }
+
+  Application.prototype.update = function(e) {
+    return this.eventDispatcher.dispatch(new App.Utils.Event("update"), this);
+  };
 
   Application.prototype.currentColor = new App.Models.Color("Black", "#000000", 1);
 
@@ -383,9 +352,9 @@ App.Models.ColorSelector = (function() {
 
 App.Models.CanvasPreview = (function() {
 
-  function CanvasPreview(targetId, applicationModel, factor) {
+  function CanvasPreview(targetId, model, factor) {
     this.targetId = targetId;
-    this.applicationModel = applicationModel;
+    this.model = model;
     this.factor = factor != null ? factor : 4;
   }
 
@@ -434,22 +403,59 @@ App.Models.History = (function() {
 
 })();
 
-/* VIEWS
-*/
+App.Models.Toolbox = (function() {
 
-App.Views.Cell = (function() {
+  function Toolbox() {}
 
-  function Cell() {}
-
-  return Cell;
+  return Toolbox;
 
 })();
 
-App.Views.Grid = (function() {
+({
+  constructor: function(tools) {
+    this.tools = tools;
+  }
+  /* VIEWS
+  */
+});
 
-  function Grid(divTargetId, applicationModel, cellStyle, emptyCellStyle, pen) {
+View = (function() {
+
+  function View() {}
+
+  View.prototype.render = function() {
+    var child, _base, _results;
+    _results = [];
+    for (child in this) {
+      console.log(child, "render");
+      _results.push(typeof (_base = this[child]).render === "function" ? _base.render() : void 0);
+    }
+    return _results;
+  };
+
+  return View;
+
+})();
+
+App.Views.Cell = (function(_super) {
+
+  __extends(Cell, _super);
+
+  function Cell() {
+    Cell.__super__.constructor.apply(this, arguments);
+  }
+
+  return Cell;
+
+})(View);
+
+App.Views.Grid = (function(_super) {
+
+  __extends(Grid, _super);
+
+  function Grid(divTargetId, model, cellStyle, emptyCellStyle, pen) {
     this.divTargetId = divTargetId;
-    this.applicationModel = applicationModel;
+    this.model = model;
     this.cellStyle = cellStyle != null ? cellStyle : "cell";
     this.emptyCellStyle = emptyCellStyle != null ? emptyCellStyle : "emptyCell";
     this.pen = pen != null ? pen : {};
@@ -464,7 +470,7 @@ App.Views.Grid = (function() {
   Grid.prototype.render = function() {
     var column, element, gridModel, row, _ref, _ref2,
       _this = this;
-    gridModel = this.applicationModel.gridModel;
+    gridModel = this.model.grid;
     this.divTargetId.innerHTML = "";
     this.divTargetId.className = " " + this.divTargetId.classes + " _" + gridModel.columns;
     this.el = "";
@@ -506,7 +512,6 @@ App.Views.Grid = (function() {
 
   Grid.prototype.fillCell = function(e) {
     var color;
-    console.log("fillCell", e);
     color = e.datas.color.color;
     if (["", void 0].indexOf(color) < 0) {
       e.datas.element.style.backgroundColor = color;
@@ -527,13 +532,16 @@ App.Views.Grid = (function() {
 
   return Grid;
 
-})();
+})(View);
 
-App.Views.Application = (function() {
+App.Views.Application = (function(_super) {
 
-  function Application(divTarget, applicationModel) {
-    this.divTarget = divTarget;
-    this.applicationModel = applicationModel;
+  __extends(Application, _super);
+
+  function Application(controller, targetId) {
+    this.controller = controller;
+    this.targetId = targetId;
+    this.controller.view = this;
     this.children = [];
   }
 
@@ -545,22 +553,19 @@ App.Views.Application = (function() {
     return this.children.splice(this.children.indexOf(view), 1);
   };
 
-  Application.prototype.render = function() {
-    var child, _i, _len, _ref, _results;
-    _ref = this.children;
-    _results = [];
-    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-      child = _ref[_i];
-      _results.push(typeof child.render === "function" ? child.render() : void 0);
-    }
-    return _results;
-  };
+  /*
+    render:->
+      for child in @children
+        child.render?()
+  */
 
   return Application;
 
-})();
+})(View);
 
-App.Views.Color = (function() {
+App.Views.Color = (function(_super) {
+
+  __extends(Color, _super);
 
   function Color(model) {
     this.model = model != null ? model : new App.Models.Color();
@@ -580,9 +585,11 @@ App.Views.Color = (function() {
 
   return Color;
 
-})();
+})(View);
 
-App.Views.Title = (function() {
+App.Views.Title = (function(_super) {
+
+  __extends(Title, _super);
 
   function Title(model) {
     this.model = model;
@@ -614,9 +621,11 @@ App.Views.Title = (function() {
 
   return Title;
 
-})();
+})(View);
 
-App.Views.ColorSelector = (function() {
+App.Views.ColorSelector = (function(_super) {
+
+  __extends(ColorSelector, _super);
 
   function ColorSelector(el, model) {
     this.el = el;
@@ -655,9 +664,11 @@ App.Views.ColorSelector = (function() {
 
   return ColorSelector;
 
-})();
+})(View);
 
-App.Views.CanvasPreview = (function() {
+App.Views.CanvasPreview = (function(_super) {
+
+  __extends(CanvasPreview, _super);
 
   function CanvasPreview(model) {
     this.model = model;
@@ -665,7 +676,7 @@ App.Views.CanvasPreview = (function() {
 
   CanvasPreview.prototype.render = function(localFactor) {
     var canvas, ctx, gridModel, i, j, pointHeight, pointWidth, x, y, _ref, _ref2;
-    gridModel = this.model.applicationModel.gridModel;
+    gridModel = this.model.model.grid;
     if (localFactor == null) localFactor = this.model.factor;
     this.model.targetId.innerHTML = "";
     canvas = document.createElement("canvas");
@@ -694,9 +705,11 @@ App.Views.CanvasPreview = (function() {
 
   return CanvasPreview;
 
-})();
+})(View);
 
-App.Views.FactorSelector = (function() {
+App.Views.FactorSelector = (function(_super) {
+
+  __extends(FactorSelector, _super);
 
   function FactorSelector(model) {
     this.model = model;
@@ -724,9 +737,11 @@ App.Views.FactorSelector = (function() {
 
   return FactorSelector;
 
-})();
+})(View);
 
-App.Views.Menu = (function() {
+App.Views.Menu = (function(_super) {
+
+  __extends(Menu, _super);
 
   function Menu(model) {
     this.model = model;
@@ -759,17 +774,53 @@ App.Views.Menu = (function() {
     return this;
   };
 
-  /* CONTROLLERS
-  */
-
   return Menu;
 
-})();
+})(View);
+
+App.Views.Toolbox = (function(_super) {
+
+  __extends(Toolbox, _super);
+
+  function Toolbox(model, targetId) {
+    this.model = model;
+    this.targetId = targetId;
+    this.eventDispatcher = new App.Utils.EventDispatcher(this);
+  }
+
+  Toolbox.prototype.render = function() {
+    var tool, _i, _len, _ref,
+      _this = this;
+    this.el = "";
+    _ref = this.model.tools;
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      tool = _ref[_i];
+      this.el += "<img title='" + tool.title + "' name='" + tool.label + "' " + ((tool.title = this.model.currentTool.value) ? "class='selected'" : "") + " src='" + tool.src + "'/>";
+    }
+    this.targetId.onclick = function(e) {
+      var name, tagName;
+      name = e.target.getAttribute("name");
+      tagName = e.target.tagName;
+      if (!(!(name != null) && tagName !== "IMG")) {
+        return _this.eventDispatcher.dispatch(new App.Utils.Event("changetool"), name);
+      }
+    };
+    this.targetId.innerHTML = this.el;
+    return this;
+  };
+
+  return Toolbox;
+
+})(View);
+
+/* CONTROLLERS
+*/
 
 App.Controllers.Application = (function() {
 
   function Application(model) {
     this.model = model;
+    this.view = null;
   }
 
   return Application;
@@ -797,132 +848,129 @@ Main = (function() {
     this.redo = __bind(this.redo, this);
     this.undo = __bind(this.undo, this);
     this.pushInHistory = __bind(this.pushInHistory, this);
-    var $canvasPreview, $colorSelector, $factorSelector, $menu, $target, $title, defaultColor, title;
+    "use strict";
+    var $app, $canvasPreview, $colorSelector, $factorSelector, $menu, $target, $title, $toolbox, defaultColor, title;
     this.version = 0.1;
     this.thickbox = document.getElementById("thickbox");
+    $app = document.getElementById("app");
     $target = document.getElementById("target");
     $canvasPreview = document.getElementById("canvasPreview");
     $colorSelector = document.getElementById("colorSelector");
     $menu = document.getElementById("menu");
     $factorSelector = document.getElementById("factorSelector");
     $title = document.getElementById("title");
+    $toolbox = document.getElementById("toolSelector");
     title = "Fav icon builder";
     defaultColor = "#000000";
     /* MODELS
     */
-    this.applicationModel = new App.Models.Application();
-    this.historyModel = new App.Models.History();
-    this.colorSelectorModel = new App.Models.ColorSelector();
-    this.applicationModel.gridModel = new App.Models.Grid(16, 16, 0.1, "new grid");
-    this.titleModel = new App.Models.Title("new grid", $title);
-    this.canvasPreviewModel = new App.Models.CanvasPreview($canvasPreview, this.applicationModel);
-    this.factorSelectorModel = new App.Models.FactorSelector($factorSelector, this.canvasPreviewModel.factor);
-    this.menuModel = new App.Models.Menu(new App.Utils.DefaultMenu().items, $menu);
-    this.applicationModel.historyModel = this.historyModel;
-    this.applicationModel.colorSelectorModel = this.colorSelectorModel;
-    this.applicationModel.titleModel = this.titleModel;
-    this.applicationModel.canvasPreviewModel = this.canvasPreviewModel;
-    this.applicationModel.factorSelectorModel = this.factorSelectorModel;
-    this.applicationModel.menuModel = this.menuModel;
+    this.model = new App.Models.Application();
+    this.model.history = new App.Models.History();
+    this.model.toolbox = new App.Models.Toolbox(App.Utils.Toolbox.prototype.tools);
+    this.model.colorSelector = new App.Models.ColorSelector();
+    this.model.grid = new App.Models.Grid(16, 16, 0.1, "new grid");
+    this.model.title = new App.Models.Title("new grid", $title);
+    this.model.canvasPreview = new App.Models.CanvasPreview($canvasPreview, this.model);
+    this.model.factorSelector = new App.Models.FactorSelector($factorSelector, this.model.canvasPreview.factor);
+    this.model.menu = new App.Models.Menu(new App.Utils.DefaultMenu().items, $menu);
+    /* CONTROLLERS
+    */
+    this.applicationController = new App.Controllers.Application(this.model);
     /* VIEWS
     */
-    this.applicationView = new App.Views.Application($target, this.applicationModel);
-    this.colorSelectorView = new App.Views.ColorSelector($colorSelector, this.colorSelectorModel);
-    this.colorSelectorView.eventDispatcher.addListener("colorchange", this.oncolorchange);
-    this.canvasPreviewView = new App.Views.CanvasPreview(this.canvasPreviewModel);
-    this.factorSelectorView = new App.Views.FactorSelector(this.factorSelectorModel);
-    this.gridView = new App.Views.Grid($target, this.applicationModel);
-    this.titleView = new App.Views.Title(this.titleModel);
-    this.gridView.setPenColor(this.applicationModel.currentColor);
-    this.menuView = new App.Views.Menu(this.menuModel);
-    this.applicationView.addChild(this.gridView);
-    this.applicationView.addChild(this.titleView);
-    this.applicationView.addChild(this.colorSelectorView);
-    this.applicationView.addChild(this.canvasPreviewView);
-    this.applicationView.addChild(this.factorSelectorView);
-    this.applicationView.addChild(this.menuView);
-    this.applicationView.render();
+    this.view = new App.Views.Application(this.applicationController, $app);
+    this.view.colorSelector = new App.Views.ColorSelector($colorSelector, this.model.colorSelector);
+    this.view.colorSelector.eventDispatcher.addListener("colorchange", this.oncolorchange);
+    this.view.canvasPreview = new App.Views.CanvasPreview(this.model.canvasPreview);
+    this.view.factorSelector = new App.Views.FactorSelector(this.model.factorSelector);
+    this.view.grid = new App.Views.Grid($target, this.model);
+    this.view.title = new App.Views.Title(this.model.title);
+    this.view.grid.setPenColor(this.model.currentColor);
+    this.view.menu = new App.Views.Menu(this.model.menu);
+    /*
+        @view.addChild(@view.toolbox)
+        @view.addChild(@view.grid)
+        @view.addChild(@view.title)
+        @view.addChild(@view.colorSelector)
+        @view.addChild(@view.canvasPreview)
+        @view.addChild(@view.factorSelector)
+        @view.addChild(@view.menu)
+    */
+    this.view.render();
     /* EVENTS
     */
-    this.menuView.eventDispatcher.addListener("exporttopng", this.exportCanvas);
-    this.menuView.eventDispatcher.addListener("changegridsize", this.changegridsize);
-    this.menuView.eventDispatcher.addListener("emptygrid", this.emptygrid);
-    this.menuView.eventDispatcher.addListener("savetolocal", this.savetolocal);
-    this.menuView.eventDispatcher.addListener("restorefromlocal", this.restoreFromLocal);
-    this.menuView.eventDispatcher.addListener("showthickbox", this.showThickbox);
-    this.menuView.eventDispatcher.addListener("undo", this.undo);
-    this.menuView.eventDispatcher.addListener("redo", this.redo);
-    this.factorSelectorView.eventDispatcher.addListener("selectfactor", this.selecFactor);
-    this.gridView.eventDispatcher.addListener("renderpreview", this.renderPreview);
-    this.gridView.eventDispatcher.addListener("updateviews", this.updateViews);
-    this.gridView.eventDispatcher.addListener("clickcell", this.clickcell);
-    this.gridView.eventDispatcher.addListener("pushinhistory", this.pushInHistory);
-    this.titleView.eventDispatcher.addListener("titlechanged", this.titleChange);
+    this.view.menu.eventDispatcher.addListener("exporttopng", this.exportCanvas);
+    this.view.menu.eventDispatcher.addListener("changegridsize", this.changegridsize);
+    this.view.menu.eventDispatcher.addListener("emptygrid", this.emptygrid);
+    this.view.menu.eventDispatcher.addListener("savetolocal", this.savetolocal);
+    this.view.menu.eventDispatcher.addListener("restorefromlocal", this.restoreFromLocal);
+    this.view.menu.eventDispatcher.addListener("showthickbox", this.showThickbox);
+    this.view.menu.eventDispatcher.addListener("undo", this.undo);
+    this.view.menu.eventDispatcher.addListener("redo", this.redo);
+    this.view.factorSelector.eventDispatcher.addListener("selectfactor", this.selecFactor);
+    this.view.grid.eventDispatcher.addListener("renderpreview", this.renderPreview);
+    this.view.grid.eventDispatcher.addListener("updateviews", this.updateViews);
+    this.view.grid.eventDispatcher.addListener("clickcell", this.clickcell);
+    this.view.grid.eventDispatcher.addListener("pushinhistory", this.pushInHistory);
+    this.view.title.eventDispatcher.addListener("titlechanged", this.titleChange);
     this.pushInHistory();
   }
 
   Main.prototype.pushInHistory = function(e) {
-    console.log("push in history", "iter = ", this.historyModel.iterator.iter, "length = ", this.historyModel.iterator.length);
-    if (this.historyModel.iterator.hasNext()) {
-      console.log("iterator has next");
-      console.log(this.historyModel.iterator.split());
+    if (this.model.history.iterator.hasNext()) {
+      this.model.history.iterator.split(this.model.history.iterator);
     }
-    this.historyModel.iterator.push(JSON.parse(JSON.stringify(this.applicationModel.gridModel)));
-    this.historyModel.iterator.iter = this.historyModel.iterator.length - 1;
-    return console.log("pushed in history", "iter = ", this.historyModel.iterator.iter, "length = ", this.historyModel.iterator.length);
+    this.model.history.iterator.push(JSON.parse(JSON.stringify(this.model.grid)));
+    return this.model.history.iterator.iter = this.model.history.iterator.length - 1;
   };
 
   Main.prototype.undo = function(e) {
-    console.log("undo");
-    if (this.historyModel.iterator.hasPrevious()) {
-      this.applicationModel.gridModel.grid = this.historyModel.iterator.previous().grid;
+    if (this.model.history.iterator.hasPrevious()) {
+      this.model.grid.grid = this.model.history.iterator.previous().grid;
       return this.updateViews();
     }
   };
 
   Main.prototype.redo = function(e) {
-    console.log("redo");
-    if (this.historyModel.iterator.hasNext()) {
-      this.applicationModel.gridModel.grid = this.historyModel.iterator.next().grid;
-      return this.applicationView.render();
+    if (this.model.history.iterator.hasNext()) {
+      this.model.grid.grid = this.model.history.iterator.next().grid;
+      return this.view.render();
     }
   };
 
   Main.prototype.clickcell = function(e) {
-    this.applicationModel.gridModel.fillCell(e.datas);
-    return this.gridView.fillCell(e);
+    this.model.grid.fillCell(e.datas);
+    return this.view.grid.fillCell(e);
   };
 
   Main.prototype.titleChange = function(e) {
-    this.applicationModel.gridModel.title = e.datas;
+    this.model.grid.title = e.datas;
     return this.updateViews();
   };
 
   Main.prototype.renderPreview = function(e) {
-    return this.canvasPreviewView.render();
+    return this.view.canvasPreview.render();
   };
 
   Main.prototype.oncolorchange = function(e) {
-    console.log("oncolorchange", e.datas.color, e.datas.title);
-    this.applicationModel.currentColor.color = e.datas.color;
-    return this.applicationModel.currentColor.title = e.datas.title;
+    this.model.currentColor.color = e.datas.color;
+    return this.model.currentColor.title = e.datas.title;
   };
 
   Main.prototype.exportCanvas = function(e) {
-    return window.open(this.canvasPreviewModel.targetId.getElementsByTagName('canvas')[0].toDataURL("image/png"));
+    return window.open(this.model.canvasPreview.targetId.getElementsByTagName('canvas')[0].toDataURL("image/png"));
   };
 
   Main.prototype.changegridsize = function(e) {
-    console.log("changegridsize", e.datas);
-    this.applicationModel.gridModel.rows = e.datas.rows;
-    this.applicationModel.gridModel.columns = e.datas.columns;
-    this.applicationModel.gridModel.fillGridBlank();
-    return this.applicationView.render();
+    this.model.grid.rows = e.datas.rows;
+    this.model.grid.columns = e.datas.columns;
+    this.model.grid.fillGridBlank();
+    return this.view.render();
   };
 
   Main.prototype.emptygrid = function() {
-    this.applicationModel.gridModel.emptyGrid();
-    return this.applicationView.render();
+    this.model.grid.emptyGrid();
+    return this.view.render();
   };
 
   Main.prototype.savetolocal = function() {
@@ -931,7 +979,7 @@ Main = (function() {
     if (localStorage["faviconbuilderGrid"]) {
       backups = JSON.parse(localStorage["faviconbuilderGrid"]);
     }
-    backups.push(this.applicationModel.gridModel);
+    backups.push(this.model.grid);
     backups.version = this.version;
     return (localStorage["faviconbuilderGrid"] = JSON.stringify(backups)) && alert("Icon saved to local storage");
   };
@@ -941,27 +989,26 @@ Main = (function() {
     if (localStorage["faviconbuilderGrid"] !== null) {
       backups = JSON.parse(localStorage["faviconbuilderGrid"]);
       gridModel = backups[backups.length - 1];
-      this.applicationModel.gridModel.grid = gridModel.grid;
-      this.applicationModel.gridModel.rows = gridModel.rows;
-      this.applicationModel.gridModel.columns = gridModel.columns;
-      this.applicationModel.gridModel.version = gridModel.version;
-      this.applicationModel.titleModel.value = gridModel.title;
+      this.model.grid.grid = gridModel.grid;
+      this.model.grid.rows = gridModel.rows;
+      this.model.grid.columns = gridModel.columns;
+      this.model.grid.version = gridModel.version;
+      this.model.title.value = gridModel.title;
       return this.updateViews();
     }
   };
 
   Main.prototype.updateViews = function() {
-    return this.applicationView.render();
+    return this.view.render();
   };
 
   Main.prototype.selecFactor = function(e) {
-    this.canvasPreviewModel.factor = parseInt(e.datas);
+    this.model.canvasPreview.factor = parseInt(e.datas);
     return this.updateViews();
   };
 
   Main.prototype.showThickbox = function(e) {
     var _this = this;
-    console.log(e, "show thickbox");
     this.thickbox.style.visibility = this.thickbox.style.visibility === "hidden" ? "visible" : "hidden";
     this.thickbox.style.opacity = parseInt(this.thickbox.style.opacity) < 1 ? 1 : 0;
     return this.thickbox.onclick = function(e) {

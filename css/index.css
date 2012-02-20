@@ -127,3 +127,14 @@ canvas{
 .emptyCell{
   background:url("/lib/img/faviconbuilder/emptycell.gif");
 }
+
+#toolSelector img{
+  border:2px solid #666;
+}
+#toolSelector img:hover{
+  border:2px dashed #666;
+}
+#toolSelector img.selected{
+  border:2px dashed #666;
+  background: #CCC;
+}
