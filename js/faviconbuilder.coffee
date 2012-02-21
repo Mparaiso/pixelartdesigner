@@ -125,6 +125,66 @@ class App.Utils.Iterator extends Array
       else
         false
 
+
+### DRAWING TOOLS ###
+
+class App.Utils.Tool
+  constructor:(@context,@point)->
+  execute:->
+
+class App.Utils.BucketTool extends App.Utils.Tool
+
+  MAXITERATION:100000
+  factor:1
+  fill : (ctx,pixel, colCible, colRep)->
+    P = []
+    max = @MAXITERATION
+    if @getColorAtPixel(ctx,pixel)!=colCible then return null
+    P.push(pixel)
+    while  P.length > 0 and max >=0
+      --max
+      currentpixel = P.pop()
+      @fillRect(ctx,currentpixel.x,currentpixel.y,@factor,@factor,colRep)
+      if @isInCanvas(ctx,currentpixel)
+        if @getColorAtPixel(ctx,@up(currentpixel)) == colCible then P.push(@up(currentpixel))
+        if @getColorAtPixel(ctx,@down(currentpixel)) == colCible then P.push(@down(currentpixel))
+        if @getColorAtPixel(ctx,@right(currentpixel)) == colCible then P.push(@right(currentpixel))
+        if @getColorAtPixel(ctx,@left(currentpixel)) == colCible then P.push(@left(currentpixel))
+    return
+
+  fillRect:(ctx,x,y,width,height,color)->
+    ctx.fillStyle = color
+    ctx.fillRect(x,y,width,height)
+    return
+  down :(pixel)->
+    return {x:pixel.x,y:pixel.y-@factor}
+
+  up:(pixel)->
+    return {x:pixel.x,y:pixel.y+@factor}
+
+  right :(pixel)->
+    return {x:pixel.x+@factor,y:pixel.y}
+
+  left :(pixel)->
+    return {x:pixel.x-@factor,y:pixel.y}
+
+  getColorAtPixel:(ctx,pixel)->
+    try
+      imageData = ctx.getImageData(pixel.x,pixel.y,1,1)
+    catch e
+      return null
+    return @rgbArrayToCssColorString(imageData.data)
+      
+  rgbArrayToCssColorString:(array)->
+    result = "rgb(#{array[0]},#{array[1]},#{array[2]})"
+    return result
+
+  isInCanvas : (ctx,pixel)->
+    result = ((0 <= pixel.x <= ctx.canvas.width) and (0 <= pixel.y <= ctx.canvas.height))
+    return result
+
+
+
 ### MODELS ###
 class App.Models.Color
   constructor:(@title="Eraser",@color=null,@alpha=1)->
@@ -230,6 +290,7 @@ class App.Views.Grid extends View
       return false
     return this
   fillCell:(e)-> # speed up the grid rendering when filling one cell 
+    #tool = @model.toolbox.currentTool.value
     color = e.datas.color.color
     if  ["",undefined].indexOf(color) < 0
       e.datas.element.style.backgroundColor = color
@@ -482,8 +543,15 @@ class Main
       @model.grid.grid =  @model.history.iterator.next().grid
       @view.render()
   clickcell:(e)=>
+    bucket = new App.Utils.BucketTool()
+    bucket.context = @model.grid
+    bucket.fillColor = e.color
+    bucket.point = {x:parseInt(e.datas.row,10),y:parseInt(e.datas.column,10)}
+    console.log "bucket",bucket
+    ###
     @model.grid.fillCell(e.datas)
     @view.grid.fillCell(e)
+    ###
   titleChange:(e)=>
     @model.grid.title = e.datas
     @updateViews()

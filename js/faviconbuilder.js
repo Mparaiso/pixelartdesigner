@@ -228,6 +228,120 @@ App.Utils.Iterator = (function(_super) {
 
 })(Array);
 
+/* DRAWING TOOLS
+*/
+
+App.Utils.Tool = (function() {
+
+  function Tool(context, point) {
+    this.context = context;
+    this.point = point;
+  }
+
+  Tool.prototype.execute = function() {};
+
+  return Tool;
+
+})();
+
+App.Utils.BucketTool = (function(_super) {
+
+  __extends(BucketTool, _super);
+
+  function BucketTool() {
+    BucketTool.__super__.constructor.apply(this, arguments);
+  }
+
+  BucketTool.prototype.MAXITERATION = 100000;
+
+  BucketTool.prototype.factor = 1;
+
+  BucketTool.prototype.fill = function(ctx, pixel, colCible, colRep) {
+    var P, currentpixel, max;
+    P = [];
+    max = this.MAXITERATION;
+    if (this.getColorAtPixel(ctx, pixel) !== colCible) return null;
+    P.push(pixel);
+    while (P.length > 0 && max >= 0) {
+      --max;
+      currentpixel = P.pop();
+      this.fillRect(ctx, currentpixel.x, currentpixel.y, this.factor, this.factor, colRep);
+      if (this.isInCanvas(ctx, currentpixel)) {
+        if (this.getColorAtPixel(ctx, this.up(currentpixel)) === colCible) {
+          P.push(this.up(currentpixel));
+        }
+        if (this.getColorAtPixel(ctx, this.down(currentpixel)) === colCible) {
+          P.push(this.down(currentpixel));
+        }
+        if (this.getColorAtPixel(ctx, this.right(currentpixel)) === colCible) {
+          P.push(this.right(currentpixel));
+        }
+        if (this.getColorAtPixel(ctx, this.left(currentpixel)) === colCible) {
+          P.push(this.left(currentpixel));
+        }
+      }
+    }
+  };
+
+  BucketTool.prototype.fillRect = function(ctx, x, y, width, height, color) {
+    ctx.fillStyle = color;
+    ctx.fillRect(x, y, width, height);
+  };
+
+  BucketTool.prototype.down = function(pixel) {
+    return {
+      x: pixel.x,
+      y: pixel.y - this.factor
+    };
+  };
+
+  BucketTool.prototype.up = function(pixel) {
+    return {
+      x: pixel.x,
+      y: pixel.y + this.factor
+    };
+  };
+
+  BucketTool.prototype.right = function(pixel) {
+    return {
+      x: pixel.x + this.factor,
+      y: pixel.y
+    };
+  };
+
+  BucketTool.prototype.left = function(pixel) {
+    return {
+      x: pixel.x - this.factor,
+      y: pixel.y
+    };
+  };
+
+  BucketTool.prototype.getColorAtPixel = function(ctx, pixel) {
+    var imageData;
+    try {
+      imageData = ctx.getImageData(pixel.x, pixel.y, 1, 1);
+    } catch (e) {
+      return null;
+    }
+    return this.rgbArrayToCssColorString(imageData.data);
+  };
+
+  BucketTool.prototype.rgbArrayToCssColorString = function(array) {
+    var result;
+    result = "rgb(" + array[0] + "," + array[1] + "," + array[2] + ")";
+    return result;
+  };
+
+  BucketTool.prototype.isInCanvas = function(ctx, pixel) {
+    var result, _ref, _ref2;
+    result = ((0 <= (_ref = pixel.x) && _ref <= ctx.canvas.width)) && ((0 <= (_ref2 = pixel.y) && _ref2 <= ctx.canvas.height));
+    return result;
+  };
+
+  return BucketTool;
+
+})(App.Utils.Tool);
+
 /* MODELS
 */
 
@@ -940,8 +1054,19 @@ Main = (function() {
   };
 
   Main.prototype.clickcell = function(e) {
-    this.model.grid.fillCell(e.datas);
-    return this.view.grid.fillCell(e);
+    var bucket;
+    bucket = new App.Utils.BucketTool();
+    bucket.context = this.model.grid;
+    bucket.fillColor = e.color;
+    bucket.point = {
+      x: parseInt(e.datas.row, 10),
+      y: parseInt(e.datas.column, 10)
+    };
+    return console.log("bucket", bucket);
+    /*
+        @model.grid.fillCell(e.datas)
+        @view.grid.fillCell(e)
+    */
   };
 
   Main.prototype.titleChange = function(e) {
