@@ -50,7 +50,30 @@ App = {
 App.Utils.DefaultColors = (function() {
 
   function DefaultColors() {
-    this.colors = [new App.Models.Color("Eraser", ""), new App.Models.Color("White", "#FFF"), new App.Models.Color("Gray2", "#DDD"), new App.Models.Color("Gray1", "#AAA"), new App.Models.Color("Gray2", "#777"), new App.Models.Color("Black", "#000"), new App.Models.Color("Red", "#900"), new App.Models.Color("Red", "#F00"), new App.Models.Color("Red", "#F99"), new App.Models.Color("Red", "#FDD"), new App.Models.Color("Green", "#090"), new App.Models.Color("Green", "#0F0"), new App.Models.Color("Green", "#9F9"), new App.Models.Color("Green", "#DFD"), new App.Models.Color("Blue", "#009"), new App.Models.Color("Blue", "#00F"), new App.Models.Color("Blue", "#99F"), new App.Models.Color("Blue", "#DDF"), new App.Models.Color("Yellow", "#FF0"), new App.Models.Color("Yellow", "#F90"), new App.Models.Color("Cyan", "#0FF"), new App.Models.Color("Cyan", "#099"), new App.Models.Color("Magenta", "#F0F"), new App.Models.Color("Magenta", "#909")];
+    this.colors = [new App.Models.Color("Eraser", ""), new App.Models.Color("White", "rgb(255,255,255)"), new App.Models.Color("Black", "rgb(0,0,0)")];
+    /* new App.Models.Color("Gray2","#DDD")
+        new App.Models.Color("Gray1","#AAA")
+        new App.Models.Color("Gray2","#777")
+        new App.Models.Color("Black","#000")
+        new App.Models.Color("Red","#900")
+        new App.Models.Color("Red","#F00")
+        new App.Models.Color("Red","#F99")
+        new App.Models.Color("Red","#FDD")
+        new App.Models.Color("Green","#090")
+        new App.Models.Color("Green","#0F0")
+        new App.Models.Color("Green","#9F9")
+        new App.Models.Color("Green","#DFD")
+        new App.Models.Color("Blue","#009")
+        new App.Models.Color("Blue","#00F")
+        new App.Models.Color("Blue","#99F")
+        new App.Models.Color("Blue","#DDF")
+        new App.Models.Color("Yellow","#FF0")
+        new App.Models.Color("Yellow","#F90")
+        new App.Models.Color("Cyan","#0FF")
+        new App.Models.Color("Cyan","#099")
+        new App.Models.Color("Magenta","#F0F")
+        new App.Models.Color("Magenta","#909")
+    */
     this.colors.sort(function(a, b) {
       return a.color < b.color;
     });
@@ -252,12 +275,13 @@ App.Utils.BucketTool = (function(_super) {
     BucketTool.__super__.constructor.apply(this, arguments);
   }
 
-  BucketTool.prototype.MAXITERATION = 100000;
+  BucketTool.prototype.MAXITERATION = 1000;
 
   BucketTool.prototype.factor = 1;
 
   BucketTool.prototype.fill = function(ctx, pixel, colCible, colRep) {
     var P, currentpixel, max;
+    console.log("bucket fill", arguments);
     P = [];
     max = this.MAXITERATION;
     if (this.getColorAtPixel(ctx, pixel) !== colCible) return null;
@@ -265,7 +289,8 @@ App.Utils.BucketTool = (function(_super) {
     while (P.length > 0 && max >= 0) {
       --max;
       currentpixel = P.pop();
-      this.fillRect(ctx, currentpixel.x, currentpixel.y, this.factor, this.factor, colRep);
+      console.log(currentpixel);
+      this.fillRect(ctx, currentpixel.x, currentpixel.y, colRep, this.factor);
       if (this.isInCanvas(ctx, currentpixel)) {
         if (this.getColorAtPixel(ctx, this.up(currentpixel)) === colCible) {
           P.push(this.up(currentpixel));
@@ -283,9 +308,15 @@ App.Utils.BucketTool = (function(_super) {
     }
   };
 
-  BucketTool.prototype.fillRect = function(ctx, x, y, width, height, color) {
-    ctx.fillStyle = color;
-    ctx.fillRect(x, y, width, height);
+  BucketTool.prototype.fillRect = function(ctx, x, y, _color, _factor) {
+    ctx.fillCell({
+      row: x,
+      column: y,
+      color: {
+        color: _color
+      },
+      factor: _factor
+    });
   };
 
   BucketTool.prototype.down = function(pixel) {
@@ -317,13 +348,11 @@ App.Utils.BucketTool = (function(_super) {
   };
 
   BucketTool.prototype.getColorAtPixel = function(ctx, pixel) {
-    var imageData;
-    try {
-      imageData = ctx.getImageData(pixel.x, pixel.y, 1, 1);
-    } catch (e) {
-      return null;
+    var result;
+    if (this.isInCanvas(ctx, pixel) && (ctx.grid[pixel.x][pixel.y] != null)) {
+      result = ctx.grid[pixel.x][pixel.y].color;
     }
-    return this.rgbArrayToCssColorString(imageData.data);
+    return result;
   };
 
   BucketTool.prototype.rgbArrayToCssColorString = function(array) {
@@ -334,7 +363,7 @@ App.Utils.BucketTool = (function(_super) {
 
   BucketTool.prototype.isInCanvas = function(ctx, pixel) {
     var result, _ref, _ref2;
-    result = ((0 <= (_ref = pixel.x) && _ref <= ctx.canvas.width)) && ((0 <= (_ref2 = pixel.y) && _ref2 <= ctx.canvas.height));
+    result = ((0 <= (_ref = pixel.x) && _ref < ctx.rows)) && ((0 <= (_ref2 = pixel.y) && _ref2 < ctx.columns));
     return result;
   };
 
@@ -349,7 +378,7 @@ App.Models.Color = (function() {
 
   function Color(title, color, alpha) {
     this.title = title != null ? title : "Eraser";
-    this.color = color != null ? color : null;
+    this.color = color != null ? color : "";
     this.alpha = alpha != null ? alpha : 1;
   }
 
@@ -369,7 +398,7 @@ App.Models.Application = (function() {
     return this.eventDispatcher.dispatch(new App.Utils.Event("update"), this);
   };
 
-  Application.prototype.currentColor = new App.Models.Color("Black", "#000000", 1);
+  Application.prototype.currentColor = new App.Models.Color("Black", "rgb(0,0,0)", 1);
 
   Application.prototype.favIconGridModel = null;
 
@@ -380,7 +409,7 @@ App.Models.Application = (function() {
 App.Models.Cell = (function() {
 
   function Cell() {
-    this.color = null;
+    this.color = "";
     this.alpha = 1;
   }
 
@@ -417,7 +446,7 @@ App.Models.Grid = (function() {
   };
 
   Grid.prototype.fillCell = function(params) {
-    this.grid[params.row][params.column].color = params.color.color;
+    this.grid[params.row][params.column].color = params.color;
     return this.grid[params.row][params.column].alpha = 1;
   };
 
@@ -456,8 +485,11 @@ App.Models.Title = (function() {
 
 App.Models.ColorSelector = (function() {
 
-  function ColorSelector(colors) {
+  function ColorSelector(colors, currentColor) {
     this.colors = colors != null ? colors : new App.Utils.DefaultColors().colors;
+    this.currentColor = currentColor != null ? currentColor : {
+      color: "rgb(0,0,0)"
+    };
   }
 
   return ColorSelector;
@@ -591,7 +623,7 @@ App.Views.Grid = (function(_super) {
       for (column = 0, _ref2 = gridModel.columns; 0 <= _ref2 ? column < _ref2 : column > _ref2; 0 <= _ref2 ? column++ : column--) {
         element = " <div name='cell' ";
         if (gridModel.grid[row][column].color !== null && gridModel.grid[row][column].color !== "") {
-          element += " style='background-color:" + gridModel.grid[row][column].color + "' ";
+          element += " style='background-color:" + gridModel.grid[row][column].color.color + "' ";
         } else {
           element += " class='" + this.emptyCellStyle + "' ";
         }
@@ -606,7 +638,7 @@ App.Views.Grid = (function(_super) {
       _this.eventDispatcher.dispatch(new App.Utils.Event("renderpreview"), {});
       return _this.eventDispatcher.dispatch(new App.Utils.Event("pushinhistory"), {});
     };
-    this.divTargetId.onmousemove = this.divTargetId.onmousedown = function(e) {
+    this.divTargetId.onmousedown = function(e) {
       if (e.type === "mousedown") _this.drawMode = true;
       if (e.target.getAttribute("name") === "cell" && _this.drawMode === true) {
         _this.eventDispatcher.dispatch(new App.Utils.Event("clickcell"), {
@@ -754,7 +786,7 @@ App.Views.ColorSelector = (function(_super) {
     var i, _ref,
       _this = this;
     this.children = [];
-    this.currentColor = new App.Views.Color(App.Models.Application.prototype.currentColor);
+    this.currentColor = new App.Views.Color(this.model.currentColor.color);
     this.el.innerHTML = "";
     this.h4Element = document.createElement("h4");
     this.h4Element.innerHTML = "Current Color";
@@ -964,7 +996,7 @@ Main = (function() {
     this.undo = __bind(this.undo, this);
     this.pushInHistory = __bind(this.pushInHistory, this);
     this.changeTool = __bind(this.changeTool, this);
-    var $app, $canvasPreview, $colorSelector, $factorSelector, $menu, $target, $title, $toolbox, defaultColor, title;
+    var $app, $canvasPreview, $colorSelector, $factorSelector, $menu, $target, $title, $toolbox, title;
     console.log("favicon builder at " + (new Date()));
     "use strict";
     this.version = 0.1;
@@ -978,13 +1010,15 @@ Main = (function() {
     $title = document.getElementById("title");
     $toolbox = document.getElementById("toolSelector");
     title = "Fav icon builder";
-    defaultColor = "#000000";
     /* MODELS
     */
     this.model = new App.Models.Application();
+    this.model.defaultColor = {
+      color: "rgb(0,0,0)"
+    };
     this.model.history = new App.Models.History();
     this.model.toolbox = new App.Models.Toolbox(App.Utils.Toolbox.prototype.tools);
-    this.model.colorSelector = new App.Models.ColorSelector();
+    this.model.colorSelector = new App.Models.ColorSelector(App.Utils.DefaultColors.prototype.colors, this.model.defaultColor);
     this.model.grid = new App.Models.Grid(16, 16, 0.1, "new grid");
     this.model.title = new App.Models.Title("new grid", $title);
     this.model.canvasPreview = new App.Models.CanvasPreview($canvasPreview, this.model);
@@ -1057,12 +1091,16 @@ Main = (function() {
     var bucket;
     bucket = new App.Utils.BucketTool();
     bucket.context = this.model.grid;
-    bucket.fillColor = e.color;
+    bucket.currentColor = e.datas.element.style.backgroundColor;
+    bucket.newColor = this.model.colorSelector.currentColor.color;
     bucket.point = {
       x: parseInt(e.datas.row, 10),
       y: parseInt(e.datas.column, 10)
     };
-    return console.log("bucket", bucket);
+    console.log("bucket", bucket);
+    bucket.fill(bucket.context, bucket.point, bucket.currentColor, bucket.newColor);
+    this.updateViews();
+    return bucket = null;
     /*
         @model.grid.fillCell(e.datas)
         @view.grid.fillCell(e)
@@ -1079,8 +1117,10 @@ Main = (function() {
   };
 
   Main.prototype.oncolorchange = function(e) {
-    this.model.currentColor.color = e.datas.color;
-    return this.model.currentColor.title = e.datas.title;
+    console.log(arguments);
+    this.model.colorSelector.currentColor.color = e.datas.color;
+    console.log(this.model.colorSelector.currentColor);
+    return this.updateViews();
   };
 
   Main.prototype.exportCanvas = function(e) {

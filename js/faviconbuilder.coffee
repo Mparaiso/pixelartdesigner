@@ -40,8 +40,10 @@ class App.Utils.DefaultColors
     @colors =
       [
         new App.Models.Color("Eraser","")
-        new App.Models.Color("White","#FFF")
-        new App.Models.Color("Gray2","#DDD")
+        new App.Models.Color("White","rgb(255,255,255)")
+        new App.Models.Color("Black","rgb(0,0,0)")
+      ]
+    ### new App.Models.Color("Gray2","#DDD")
         new App.Models.Color("Gray1","#AAA")
         new App.Models.Color("Gray2","#777")
         new App.Models.Color("Black","#000")
@@ -63,7 +65,7 @@ class App.Utils.DefaultColors
         new App.Models.Color("Cyan","#099")
         new App.Models.Color("Magenta","#F0F")
         new App.Models.Color("Magenta","#909")
-      ]
+    ###
     @colors.sort (a,b)->  a.color< b.color
 
 class App.Utils.Event
@@ -134,9 +136,10 @@ class App.Utils.Tool
 
 class App.Utils.BucketTool extends App.Utils.Tool
 
-  MAXITERATION:100000
+  MAXITERATION:1000
   factor:1
   fill : (ctx,pixel, colCible, colRep)->
+    console.log "bucket fill",arguments
     P = []
     max = @MAXITERATION
     if @getColorAtPixel(ctx,pixel)!=colCible then return null
@@ -144,7 +147,8 @@ class App.Utils.BucketTool extends App.Utils.Tool
     while  P.length > 0 and max >=0
       --max
       currentpixel = P.pop()
-      @fillRect(ctx,currentpixel.x,currentpixel.y,@factor,@factor,colRep)
+      console.log currentpixel
+      @fillRect(ctx,currentpixel.x,currentpixel.y,colRep,@factor)
       if @isInCanvas(ctx,currentpixel)
         if @getColorAtPixel(ctx,@up(currentpixel)) == colCible then P.push(@up(currentpixel))
         if @getColorAtPixel(ctx,@down(currentpixel)) == colCible then P.push(@down(currentpixel))
@@ -152,9 +156,8 @@ class App.Utils.BucketTool extends App.Utils.Tool
         if @getColorAtPixel(ctx,@left(currentpixel)) == colCible then P.push(@left(currentpixel))
     return
 
-  fillRect:(ctx,x,y,width,height,color)->
-    ctx.fillStyle = color
-    ctx.fillRect(x,y,width,height)
+  fillRect:(ctx,x,y,_color,_factor)->
+    ctx.fillCell({row:x,column:y,color:{color:_color},factor:_factor})
     return
   down :(pixel)->
     return {x:pixel.x,y:pixel.y-@factor}
@@ -169,25 +172,23 @@ class App.Utils.BucketTool extends App.Utils.Tool
     return {x:pixel.x-@factor,y:pixel.y}
 
   getColorAtPixel:(ctx,pixel)->
-    try
-      imageData = ctx.getImageData(pixel.x,pixel.y,1,1)
-    catch e
-      return null
-    return @rgbArrayToCssColorString(imageData.data)
-      
+    if @isInCanvas(ctx,pixel) and ctx.grid[pixel.x][pixel.y]?
+      result = ctx.grid[pixel.x][pixel.y].color
+    return result
+
   rgbArrayToCssColorString:(array)->
     result = "rgb(#{array[0]},#{array[1]},#{array[2]})"
     return result
 
   isInCanvas : (ctx,pixel)->
-    result = ((0 <= pixel.x <= ctx.canvas.width) and (0 <= pixel.y <= ctx.canvas.height))
+    result = ((0 <= pixel.x < ctx.rows) and (0 <= pixel.y <ctx.columns))
     return result
 
 
 
 ### MODELS ###
 class App.Models.Color
-  constructor:(@title="Eraser",@color=null,@alpha=1)->
+  constructor:(@title="Eraser",@color="",@alpha=1)->
 
 class App.Models.Application
   constructor:->
@@ -196,12 +197,12 @@ class App.Models.Application
     @eventDispatcher.addListener("modelupdate",@update)
   update:(e)=>
     @eventDispatcher.dispatch(new App.Utils.Event("update"),@)
-  currentColor : new App.Models.Color("Black","#000000",1)
+  currentColor : new App.Models.Color("Black","rgb(0,0,0)",1)
   favIconGridModel : null
 
 class App.Models.Cell
   constructor:->
-    @color=null
+    @color=""
     @alpha=1
 
 class App.Models.Grid
@@ -214,7 +215,7 @@ class App.Models.Grid
       for j in [0... @columns]
         @grid[i][j]?= new  App.Models.Cell()
   fillCell:(params)->
-    @grid[params.row][params.column].color = params.color.color
+    @grid[params.row][params.column].color = params.color
     @grid[params.row][params.column].alpha = 1
   emptyGrid:->
     for i in [0...@rows]
@@ -227,7 +228,7 @@ class App.Models.Title
   constructor:(@value,@targetId)->
 
 class App.Models.ColorSelector
-  constructor:(@colors= new App.Utils.DefaultColors().colors)->
+  constructor:(@colors= new App.Utils.DefaultColors().colors,@currentColor={color:"rgb(0,0,0)"})->
 
 class App.Models.CanvasPreview
   constructor:(@targetId,@model,@factor=4)->
@@ -272,7 +273,7 @@ class App.Views.Grid extends View
       for column in [0...gridModel.columns]
         element = " <div name='cell' "
         if gridModel.grid[row][column].color != null  and gridModel.grid[row][column].color != ""
-          element+= " style='background-color:#{gridModel.grid[row][column].color}' "
+          element+= " style='background-color:#{gridModel.grid[row][column].color.color}' "
         else
           element+= " class='#{@emptyCellStyle}' "
         element+= " data-row='#{row}' data-column='#{column}' "
@@ -283,7 +284,8 @@ class App.Views.Grid extends View
       @drawMode = false
       @eventDispatcher.dispatch(new App.Utils.Event("renderpreview"),{})
       @eventDispatcher.dispatch(new App.Utils.Event("pushinhistory"),{})
-    @divTargetId.onmousemove = @divTargetId.onmousedown = (e)=>
+    #@divTargetId.onmousemove = 
+    @divTargetId.onmousedown = (e)=>
       if e.type == "mousedown" then @drawMode = true
       if e.target.getAttribute("name")=="cell" and @drawMode == true
         @eventDispatcher.dispatch(new App.Utils.Event("clickcell"),{element:e.target,tool:"pen",width:2,color:@pen.color,row:e.target.getAttribute("data-row"),column:e.target.getAttribute("data-column")})
@@ -363,7 +365,7 @@ class App.Views.ColorSelector extends View
     @eventDispatcher =new App.Utils.EventDispatcher()
   render:->
     @children = []
-    @currentColor = new App.Views.Color(App.Models.Application::currentColor)
+    @currentColor = new App.Views.Color(@model.currentColor.color)
     @el.innerHTML = ""
     @h4Element = document.createElement("h4")
     @h4Element.innerHTML = "Current Color"
@@ -482,12 +484,12 @@ class Main
     $toolbox = document.getElementById "toolSelector"
     title = "Fav icon builder"
 
-    defaultColor = "#000000"
     ### MODELS ###
     @model = new App.Models.Application()
+    @model.defaultColor = {color:"rgb(0,0,0)"}
     @model.history = new App.Models.History()
     @model.toolbox = new App.Models.Toolbox(App.Utils.Toolbox::tools)
-    @model.colorSelector = new App.Models.ColorSelector()
+    @model.colorSelector = new App.Models.ColorSelector(App.Utils.DefaultColors::colors,@model.defaultColor)
     @model.grid = new App.Models.Grid(16,16,0.1,"new grid")
     @model.title = new App.Models.Title("new grid",$title)
     @model.canvasPreview = new App.Models.CanvasPreview($canvasPreview,@model)
@@ -545,9 +547,13 @@ class Main
   clickcell:(e)=>
     bucket = new App.Utils.BucketTool()
     bucket.context = @model.grid
-    bucket.fillColor = e.color
+    bucket.currentColor = e.datas.element.style.backgroundColor
+    bucket.newColor = @model.colorSelector.currentColor.color
     bucket.point = {x:parseInt(e.datas.row,10),y:parseInt(e.datas.column,10)}
     console.log "bucket",bucket
+    bucket.fill(bucket.context,bucket.point,bucket.currentColor,bucket.newColor)
+    @updateViews()
+    bucket =null
     ###
     @model.grid.fillCell(e.datas)
     @view.grid.fillCell(e)
@@ -558,8 +564,12 @@ class Main
   renderPreview:(e)=>
     @view.canvasPreview.render()
   oncolorchange:(e)=>
-    @model.currentColor.color = e.datas.color
-    @model.currentColor.title = e.datas.title
+    console.log arguments
+    @model.colorSelector.currentColor.color = e.datas.color
+    console.log @model.colorSelector.currentColor
+    #@model.colorSelector.currentColor.title = e.datas.title
+    #
+    @updateViews()
   exportCanvas:(e)=>
     window.open(@model.canvasPreview.targetId.getElementsByTagName('canvas')[0].toDataURL("image/png"))
   changegridsize:(e)=>
