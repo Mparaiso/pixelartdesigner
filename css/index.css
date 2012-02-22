@@ -103,7 +103,7 @@ canvas{
   margin:3px;
   padding:0;
 }
-#colorSelector .color:hover{
+#colorSelector div[name=cell]:hover{
   cursor: pointer;
   border:1px dashed #111;
 }
@@ -113,7 +113,7 @@ canvas{
   margin-right:20px;
   padding:0;
 }
-#target div{
+div[name=cell]{
   width:20px;
   height:20px;
   margin:-2px -2px 0px 0px;
@@ -122,7 +122,7 @@ canvas{
   display: inline-block;
   border:1px solid #DDD;
 }
-#target div:hover{
+div[name=cell]:hover{
   border: 1px dashed #AAA;
 }
 .emptyCell{

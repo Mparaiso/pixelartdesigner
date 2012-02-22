@@ -1,20 +1,20 @@
-###
-  FAVICON BUILDER
-  @version 0.1
-  @author M.Paraiso
 
-  EVENT DISPATCHER
+# FAVICON BUILDER
+# @version 0.1
+# @author M.Paraiso
+# 
+# EVENT DISPATCHER
+# 
+# @description FR
+# imite le system d'évenements de flash.
+# Etend Object.prototype
+# les objets implementent 3 méthodes : dispatch , addListener , removeListener
+# l'objet Event du DOM est utilisé par défaut pour transmettre les messages.
+# on peut récuperer des données de l'évenement grace au champ datas de l'objet event
+# currentTarget et target permettent de savoir dans quel context l'évenement a été dispatché ( émit )
+# 
+# @description EN
 
-  @description FR
-  imite le system d'évenements de flash.
-  Etend Object.prototype
-  les objets implementent 3 méthodes : dispatch , addListener , removeListener
-  l'objet Event du DOM est utilisé par défaut pour transmettre les messages.
-  on peut récuperer des données de l'évenement grace au champ datas de l'objet event
-  currentTarget et target permettent de savoir dans quel context l'évenement a été dispatché ( émit )
-
-  @description EN
-###
 
 console?=
   log:->
@@ -40,10 +40,8 @@ class App.Utils.DefaultColors
     @colors =
       [
         new App.Models.Color("Eraser","")
-        new App.Models.Color("White","rgb(255,255,255)")
-        new App.Models.Color("Black","rgb(0,0,0)")
-      ]
-    ### new App.Models.Color("Gray2","#DDD")
+        new App.Models.Color("White","#FFF")
+        new App.Models.Color("Gray2","#DDD")
         new App.Models.Color("Gray1","#AAA")
         new App.Models.Color("Gray2","#777")
         new App.Models.Color("Black","#000")
@@ -65,8 +63,7 @@ class App.Utils.DefaultColors
         new App.Models.Color("Cyan","#099")
         new App.Models.Color("Magenta","#F0F")
         new App.Models.Color("Magenta","#909")
-    ###
-    @colors.sort (a,b)->  a.color< b.color
+      ]
 
 class App.Utils.Event
   constructor:(@type)->
@@ -188,7 +185,7 @@ class App.Utils.BucketTool extends App.Utils.Tool
 
 ### MODELS ###
 class App.Models.Color
-  constructor:(@title="Eraser",@color="",@alpha=1)->
+  constructor:(@title="Eraser",@value="",@alpha=1)->
 
 class App.Models.Application
   constructor:->
@@ -201,9 +198,7 @@ class App.Models.Application
   favIconGridModel : null
 
 class App.Models.Cell
-  constructor:->
-    @color=""
-    @alpha=1
+  constructor:(@color=new App.Models.Color("empty",""),@row,@column)->
 
 class App.Models.Grid
   constructor:(@rows=16,@columns=16,@version,@title)-> # crée le modèle de grille
@@ -228,7 +223,7 @@ class App.Models.Title
   constructor:(@value,@targetId)->
 
 class App.Models.ColorSelector
-  constructor:(@colors= new App.Utils.DefaultColors().colors,@currentColor={color:"rgb(0,0,0)"})->
+  constructor:(@colors= new App.Utils.DefaultColors().colors,@currentColor=new App.Models.Color("Black","rgb(0,0,0)"))->
 
 class App.Models.CanvasPreview
   constructor:(@targetId,@model,@factor=4)->
@@ -257,6 +252,19 @@ class View
       @[child].render?()
 
 class App.Views.Cell extends View
+  constructor:(@model,@targetId)->
+  render:->
+    @el = "<div name ='cell' "
+    if ["",null].indexOf(@model.color.value) >= 0
+      @el+= " class='emptyCell ' "
+    else
+      @el+= " style='background-color:#{@model.color.value};' "
+    @el+= " data-row='#{@model.row}' data-column='#{@model.column}' "
+    @el+= " > </div> "
+    if targetId?
+      @targetId.innerHTML = @el
+    return this
+  
 
 class App.Views.Grid extends View
   constructor:(@divTargetId,@model,@cellStyle="cell",@emptyCellStyle="emptyCell",@pen={})->
@@ -271,13 +279,8 @@ class App.Views.Grid extends View
     @el = ""
     for row in [0...gridModel.rows]
       for column in [0...gridModel.columns]
-        element = " <div name='cell' "
-        if gridModel.grid[row][column].color != null  and gridModel.grid[row][column].color != ""
-          element+= " style='background-color:#{gridModel.grid[row][column].color.color}' "
-        else
-          element+= " class='#{@emptyCellStyle}' "
-        element+= " data-row='#{row}' data-column='#{column}' "
-        element+= " ></div> "
+        cell = new App.Views.Cell(new App.Models.Cell(gridModel.grid[row][column].color,row,column))
+        element = cell.render().el
         @el += element
     @divTargetId.innerHTML += @el
     @divTargetId.onmouseup =(e)=>
@@ -293,7 +296,7 @@ class App.Views.Grid extends View
     return this
   fillCell:(e)-> # speed up the grid rendering when filling one cell 
     #tool = @model.toolbox.currentTool.value
-    color = e.datas.color.color
+    color = e.datas.color.value
     if  ["",undefined].indexOf(color) < 0
       e.datas.element.style.backgroundColor = color
       e.datas.element.className  = ""
@@ -321,19 +324,6 @@ class App.Views.Application extends View
     for child in @children
       child.render?()
   ###
-
-class App.Views.Color extends View
-  constructor:(@model=new App.Models.Color())->
-  render:()->
-    @el = document.createElement("div")
-    @el.setAttribute("title",@model.title)
-    @el.className+=" color "
-    if @model.color !=null and @model.color!=""
-      @el.style.backgroundColor = @model.color
-    else
-      @el.className+=" emptyCell "
-    return this
-
 class App.Views.Title extends View
   constructor:(@model)->
     @eventDispatcher = new App.Utils.EventDispatcher(this)
@@ -359,25 +349,24 @@ class App.Views.Title extends View
     return this
 
 class App.Views.ColorSelector extends View
-  constructor:(@el,@model)->
+  constructor:(@model,@targetId)->
     if not @model instanceof App.Models.ColorSelector then throw new Error("model must be an instance of ColorSelector")
     @children = []
     @eventDispatcher =new App.Utils.EventDispatcher()
   render:->
     @children = []
-    @currentColor = new App.Views.Color(@model.currentColor.color)
-    @el.innerHTML = ""
-    @h4Element = document.createElement("h4")
-    @h4Element.innerHTML = "Current Color"
-    @el.appendChild(@h4Element)
-    @el.appendChild(@currentColor.render().el)
-    @el.innerHTML+="<h4>Color swatch</h4>"
+    currentColor = new App.Views.Cell(new App.Models.Cell(new App.Models.Color("",@model.currentColor.value)))
+    @el = ""
+    @el +="<h4>Current Color</h4>"
+    @el +=currentColor.render().el
+    @el +="<h4>Color swatch</h4>"
     for i in [0...@model.colors.length]
-      @children[i] = new App.Views.Color(@model.colors[i])
-      @el.appendChild(@children[i].render().el)
-      @children[i].el.onclick = (e)=>
-        @eventDispatcher.dispatch(new App.Utils.Event("colorchange"),{"color":e.target.style.backgroundColor,"title":e.target.title})
-        @render()
+      @children[i] = new App.Views.Cell(new App.Models.Cell(@model.colors[i]))
+      @el +=@children[i].render().el
+    @targetId.innerHTML = @el
+    @targetId.onclick = (e)=>
+      if e.target.getAttribute("name") != "cell" then return
+      @eventDispatcher.dispatch(new App.Utils.Event("colorchange"),{"color":e.target.style.backgroundColor,"title":e.target.title})
     return this
 
 class App.Views.CanvasPreview extends View
@@ -486,7 +475,7 @@ class Main
 
     ### MODELS ###
     @model = new App.Models.Application()
-    @model.defaultColor = {color:"rgb(0,0,0)"}
+    @model.defaultColor = {value:"rgb(0,0,0)"}
     @model.history = new App.Models.History()
     @model.toolbox = new App.Models.Toolbox(App.Utils.Toolbox::tools)
     @model.colorSelector = new App.Models.ColorSelector(App.Utils.DefaultColors::colors,@model.defaultColor)
@@ -500,7 +489,7 @@ class Main
     ### VIEWS ###
     @view = new App.Views.Application(@applicationController,$app)
     @view.toolbox = new App.Views.Toolbox(@model.toolbox,$toolbox)
-    @view.colorSelector = new App.Views.ColorSelector($colorSelector,@model.colorSelector)
+    @view.colorSelector = new App.Views.ColorSelector(@model.colorSelector,$colorSelector)
     @view.colorSelector.eventDispatcher.addListener("colorchange",@oncolorchange)
     @view.canvasPreview = new App.Views.CanvasPreview(@model.canvasPreview)
     @view.factorSelector = new App.Views.FactorSelector(@model.factorSelector)
@@ -548,7 +537,7 @@ class Main
     bucket = new App.Utils.BucketTool()
     bucket.context = @model.grid
     bucket.currentColor = e.datas.element.style.backgroundColor
-    bucket.newColor = @model.colorSelector.currentColor.color
+    bucket.newColor = @model.colorSelector.currentColor.value
     bucket.point = {x:parseInt(e.datas.row,10),y:parseInt(e.datas.column,10)}
     console.log "bucket",bucket
     bucket.fill(bucket.context,bucket.point,bucket.currentColor,bucket.newColor)
@@ -565,7 +554,7 @@ class Main
     @view.canvasPreview.render()
   oncolorchange:(e)=>
     console.log arguments
-    @model.colorSelector.currentColor.color = e.datas.color
+    @model.colorSelector.currentColor.value = e.datas.color
     console.log @model.colorSelector.currentColor
     #@model.colorSelector.currentColor.title = e.datas.title
     #

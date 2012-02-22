@@ -1,20 +1,3 @@
-/*
-  FAVICON BUILDER
-  @version 0.1
-  @author M.Paraiso
-
-  EVENT DISPATCHER
-
-  @description FR
-  imite le system d'évenements de flash.
-  Etend Object.prototype
-  les objets implementent 3 méthodes : dispatch , addListener , removeListener
-  l'objet Event du DOM est utilisé par défaut pour transmettre les messages.
-  on peut récuperer des données de l'évenement grace au champ datas de l'objet event
-  currentTarget et target permettent de savoir dans quel context l'évenement a été dispatché ( émit )
-
-  @description EN
-*/
 var App, Main, View,
   __hasProp = Object.prototype.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; },
@@ -50,33 +33,7 @@ App = {
 App.Utils.DefaultColors = (function() {
 
   function DefaultColors() {
-    this.colors = [new App.Models.Color("Eraser", ""), new App.Models.Color("White", "rgb(255,255,255)"), new App.Models.Color("Black", "rgb(0,0,0)")];
-    /* new App.Models.Color("Gray2","#DDD")
-        new App.Models.Color("Gray1","#AAA")
-        new App.Models.Color("Gray2","#777")
-        new App.Models.Color("Black","#000")
-        new App.Models.Color("Red","#900")
-        new App.Models.Color("Red","#F00")
-        new App.Models.Color("Red","#F99")
-        new App.Models.Color("Red","#FDD")
-        new App.Models.Color("Green","#090")
-        new App.Models.Color("Green","#0F0")
-        new App.Models.Color("Green","#9F9")
-        new App.Models.Color("Green","#DFD")
-        new App.Models.Color("Blue","#009")
-        new App.Models.Color("Blue","#00F")
-        new App.Models.Color("Blue","#99F")
-        new App.Models.Color("Blue","#DDF")
-        new App.Models.Color("Yellow","#FF0")
-        new App.Models.Color("Yellow","#F90")
-        new App.Models.Color("Cyan","#0FF")
-        new App.Models.Color("Cyan","#099")
-        new App.Models.Color("Magenta","#F0F")
-        new App.Models.Color("Magenta","#909")
-    */
-    this.colors.sort(function(a, b) {
-      return a.color < b.color;
-    });
+    this.colors = [new App.Models.Color("Eraser", ""), new App.Models.Color("White", "#FFF"), new App.Models.Color("Gray2", "#DDD"), new App.Models.Color("Gray1", "#AAA"), new App.Models.Color("Gray2", "#777"), new App.Models.Color("Black", "#000"), new App.Models.Color("Red", "#900"), new App.Models.Color("Red", "#F00"), new App.Models.Color("Red", "#F99"), new App.Models.Color("Red", "#FDD"), new App.Models.Color("Green", "#090"), new App.Models.Color("Green", "#0F0"), new App.Models.Color("Green", "#9F9"), new App.Models.Color("Green", "#DFD"), new App.Models.Color("Blue", "#009"), new App.Models.Color("Blue", "#00F"), new App.Models.Color("Blue", "#99F"), new App.Models.Color("Blue", "#DDF"), new App.Models.Color("Yellow", "#FF0"), new App.Models.Color("Yellow", "#F90"), new App.Models.Color("Cyan", "#0FF"), new App.Models.Color("Cyan", "#099"), new App.Models.Color("Magenta", "#F0F"), new App.Models.Color("Magenta", "#909")];
   }
 
   return DefaultColors;
@@ -376,9 +333,9 @@ App.Utils.BucketTool = (function(_super) {
 
 App.Models.Color = (function() {
 
-  function Color(title, color, alpha) {
+  function Color(title, value, alpha) {
     this.title = title != null ? title : "Eraser";
-    this.color = color != null ? color : "";
+    this.value = value != null ? value : "";
     this.alpha = alpha != null ? alpha : 1;
   }
 
@@ -408,9 +365,10 @@ App.Models.Application = (function() {
 
 App.Models.Cell = (function() {
 
-  function Cell() {
-    this.color = "";
-    this.alpha = 1;
+  function Cell(color, row, column) {
+    this.color = color != null ? color : new App.Models.Color("empty", "");
+    this.row = row;
+    this.column = column;
   }
 
   return Cell;
@@ -487,9 +445,7 @@ App.Models.ColorSelector = (function() {
 
   function ColorSelector(colors, currentColor) {
     this.colors = colors != null ? colors : new App.Utils.DefaultColors().colors;
-    this.currentColor = currentColor != null ? currentColor : {
-      color: "rgb(0,0,0)"
-    };
+    this.currentColor = currentColor != null ? currentColor : new App.Models.Color("Black", "rgb(0,0,0)");
   }
 
   return ColorSelector;
@@ -586,9 +542,25 @@ App.Views.Cell = (function(_super) {
 
   __extends(Cell, _super);
 
-  function Cell() {
-    Cell.__super__.constructor.apply(this, arguments);
+  function Cell(model, targetId) {
+    this.model = model;
+    this.targetId = targetId;
   }
+
+  Cell.prototype.render = function() {
+    this.el = "<div name ='cell' ";
+    if (["", null].indexOf(this.model.color.value) >= 0) {
+      this.el += " class='emptyCell ' ";
+    } else {
+      this.el += " style='background-color:" + this.model.color.value + ";' ";
+    }
+    this.el += " data-row='" + this.model.row + "' data-column='" + this.model.column + "' ";
+    this.el += " > </div> ";
+    if (typeof targetId !== "undefined" && targetId !== null) {
+      this.targetId.innerHTML = this.el;
+    }
+    return this;
+  };
 
   return Cell;
 
@@ -613,7 +585,7 @@ App.Views.Grid = (function(_super) {
   }
 
   Grid.prototype.render = function() {
-    var column, element, gridModel, row, _ref, _ref2,
+    var cell, column, element, gridModel, row, _ref, _ref2,
       _this = this;
     gridModel = this.model.grid;
     this.divTargetId.innerHTML = "";
@@ -621,14 +593,8 @@ App.Views.Grid = (function(_super) {
     this.el = "";
     for (row = 0, _ref = gridModel.rows; 0 <= _ref ? row < _ref : row > _ref; 0 <= _ref ? row++ : row--) {
       for (column = 0, _ref2 = gridModel.columns; 0 <= _ref2 ? column < _ref2 : column > _ref2; 0 <= _ref2 ? column++ : column--) {
-        element = " <div name='cell' ";
-        if (gridModel.grid[row][column].color !== null && gridModel.grid[row][column].color !== "") {
-          element += " style='background-color:" + gridModel.grid[row][column].color.color + "' ";
-        } else {
-          element += " class='" + this.emptyCellStyle + "' ";
-        }
-        element += " data-row='" + row + "' data-column='" + column + "' ";
-        element += " ></div> ";
+        cell = new App.Views.Cell(new App.Models.Cell(gridModel.grid[row][column].color, row, column));
+        element = cell.render().el;
         this.el += element;
       }
     }
@@ -657,7 +623,7 @@ App.Views.Grid = (function(_super) {
 
   Grid.prototype.fillCell = function(e) {
     var color;
-    color = e.datas.color.color;
+    color = e.datas.color.value;
     if (["", void 0].indexOf(color) < 0) {
       e.datas.element.style.backgroundColor = color;
       return e.datas.element.className = "";
@@ -708,30 +674,6 @@ App.Views.Application = (function(_super) {
 
 })(View);
 
-App.Views.Color = (function(_super) {
-
-  __extends(Color, _super);
-
-  function Color(model) {
-    this.model = model != null ? model : new App.Models.Color();
-  }
-
-  Color.prototype.render = function() {
-    this.el = document.createElement("div");
-    this.el.setAttribute("title", this.model.title);
-    this.el.className += " color ";
-    if (this.model.color !== null && this.model.color !== "") {
-      this.el.style.backgroundColor = this.model.color;
-    } else {
-      this.el.className += " emptyCell ";
-    }
-    return this;
-  };
-
-  return Color;
-
-})(View);
-
 App.Views.Title = (function(_super) {
 
   __extends(Title, _super);
@@ -772,9 +714,9 @@ App.Views.ColorSelector = (function(_super) {
 
   __extends(ColorSelector, _super);
 
-  function ColorSelector(el, model) {
-    this.el = el;
+  function ColorSelector(model, targetId) {
     this.model = model;
+    this.targetId = targetId;
     if (!this.model instanceof App.Models.ColorSelector) {
       throw new Error("model must be an instance of ColorSelector");
     }
@@ -783,27 +725,26 @@ App.Views.ColorSelector = (function(_super) {
   }
 
   ColorSelector.prototype.render = function() {
-    var i, _ref,
+    var currentColor, i, _ref,
       _this = this;
     this.children = [];
-    this.currentColor = new App.Views.Color(this.model.currentColor.color);
-    this.el.innerHTML = "";
-    this.h4Element = document.createElement("h4");
-    this.h4Element.innerHTML = "Current Color";
-    this.el.appendChild(this.h4Element);
-    this.el.appendChild(this.currentColor.render().el);
-    this.el.innerHTML += "<h4>Color swatch</h4>";
+    currentColor = new App.Views.Cell(new App.Models.Cell(new App.Models.Color("", this.model.currentColor.value)));
+    this.el = "";
+    this.el += "<h4>Current Color</h4>";
+    this.el += currentColor.render().el;
+    this.el += "<h4>Color swatch</h4>";
     for (i = 0, _ref = this.model.colors.length; 0 <= _ref ? i < _ref : i > _ref; 0 <= _ref ? i++ : i--) {
-      this.children[i] = new App.Views.Color(this.model.colors[i]);
-      this.el.appendChild(this.children[i].render().el);
-      this.children[i].el.onclick = function(e) {
-        _this.eventDispatcher.dispatch(new App.Utils.Event("colorchange"), {
-          "color": e.target.style.backgroundColor,
-          "title": e.target.title
-        });
-        return _this.render();
-      };
+      this.children[i] = new App.Views.Cell(new App.Models.Cell(this.model.colors[i]));
+      this.el += this.children[i].render().el;
     }
+    this.targetId.innerHTML = this.el;
+    this.targetId.onclick = function(e) {
+      if (e.target.getAttribute("name") !== "cell") return;
+      return _this.eventDispatcher.dispatch(new App.Utils.Event("colorchange"), {
+        "color": e.target.style.backgroundColor,
+        "title": e.target.title
+      });
+    };
     return this;
   };
 
@@ -1014,7 +955,7 @@ Main = (function() {
     */
     this.model = new App.Models.Application();
     this.model.defaultColor = {
-      color: "rgb(0,0,0)"
+      value: "rgb(0,0,0)"
     };
     this.model.history = new App.Models.History();
     this.model.toolbox = new App.Models.Toolbox(App.Utils.Toolbox.prototype.tools);
@@ -1031,7 +972,7 @@ Main = (function() {
     */
     this.view = new App.Views.Application(this.applicationController, $app);
     this.view.toolbox = new App.Views.Toolbox(this.model.toolbox, $toolbox);
-    this.view.colorSelector = new App.Views.ColorSelector($colorSelector, this.model.colorSelector);
+    this.view.colorSelector = new App.Views.ColorSelector(this.model.colorSelector, $colorSelector);
     this.view.colorSelector.eventDispatcher.addListener("colorchange", this.oncolorchange);
     this.view.canvasPreview = new App.Views.CanvasPreview(this.model.canvasPreview);
     this.view.factorSelector = new App.Views.FactorSelector(this.model.factorSelector);
@@ -1092,7 +1033,7 @@ Main = (function() {
     bucket = new App.Utils.BucketTool();
     bucket.context = this.model.grid;
     bucket.currentColor = e.datas.element.style.backgroundColor;
-    bucket.newColor = this.model.colorSelector.currentColor.color;
+    bucket.newColor = this.model.colorSelector.currentColor.value;
     bucket.point = {
       x: parseInt(e.datas.row, 10),
       y: parseInt(e.datas.column, 10)
@@ -1118,7 +1059,7 @@ Main = (function() {
 
   Main.prototype.oncolorchange = function(e) {
     console.log(arguments);
-    this.model.colorSelector.currentColor.color = e.datas.color;
+    this.model.colorSelector.currentColor.value = e.datas.color;
     console.log(this.model.colorSelector.currentColor);
     return this.updateViews();
   };
