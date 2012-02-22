@@ -69,11 +69,8 @@ span.tip{
   color:#EEE;
 }
 .nav input[type=button]{
-  display:inline-block;
-  background:#EEE;
-  border:1px solid #AAA;
-  width:150px;
-  height:20px;
+border: 1px solid #000;
+width:100%;
 }
 
 canvas{

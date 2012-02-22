@@ -2,28 +2,30 @@
 # FAVICON BUILDER
 # @version 0.1
 # @author M.Paraiso
-# 
-# EVENT DISPATCHER
-# 
-# @description FR
-# imite le system d'évenements de flash.
-# Etend Object.prototype
-# les objets implementent 3 méthodes : dispatch , addListener , removeListener
-# l'objet Event du DOM est utilisé par défaut pour transmettre les messages.
-# on peut récuperer des données de l'évenement grace au champ datas de l'objet event
-# currentTarget et target permettent de savoir dans quel context l'évenement a été dispatché ( émit )
-# 
+#
+
+#
 # @description EN
 
 
 console?=
   log:->
+    return
+#
 
+###*
+* @function
+* @return Array
+###
 Array.prototype.split = (index)->
   if index < this.length
     q = this.length-index
     return this.splice(index,q)
-# namespaces #
+
+
+###*
+* @namespace
+###
 App = {
   Views:{}
   Models:{}
@@ -71,6 +73,17 @@ class App.Utils.Event
     @target=null
     @currentTarget=null
 
+# App.Utils.EventDispatcher
+# -------------------------
+#
+#### FR :
+#<ul>
+#  <li>imite le system d'évenements __flash__.
+#  <li>Etend Object.prototype
+#  <li> les objets implementent 3 méthodes : dispatch , addListener , removeListener
+#  <li> l'objet Event du DOM est utilisé par défaut pour transmettre les messages.
+#  <li> on peut récuperer des données de l'évenement grace au champ datas de l'objet event
+#  <li> currentTarget et target permettent de savoir dans quel context l'évenement a été dispatché ( émit )
 class App.Utils.EventDispatcher
     constructor:(@parent)->
     listeners : []
@@ -230,7 +243,7 @@ class App.Models.CanvasPreview
 
 class App.Models.FactorSelector
   constructor:(@targetId,@factor,@selectors=[1,2,3,4])->
-    
+
 class App.Models.Menu
   constructor:(@items=[],@targetId)->
   addItem:(item)->
@@ -244,7 +257,7 @@ class App.Models.History
 class App.Models.Toolbox
   constructor:(@tools)->
     @currentTool = {value:@tools[0].label}
-  
+
 ### VIEWS ###
 class View
   render:->
@@ -264,7 +277,7 @@ class App.Views.Cell extends View
     if targetId?
       @targetId.innerHTML = @el
     return this
-  
+
 
 class App.Views.Grid extends View
   constructor:(@divTargetId,@model,@cellStyle="cell",@emptyCellStyle="emptyCell",@pen={})->
@@ -287,14 +300,14 @@ class App.Views.Grid extends View
       @drawMode = false
       @eventDispatcher.dispatch(new App.Utils.Event("renderpreview"),{})
       @eventDispatcher.dispatch(new App.Utils.Event("pushinhistory"),{})
-    #@divTargetId.onmousemove = 
+    #@divTargetId.onmousemove =
     @divTargetId.onmousedown = (e)=>
       if e.type == "mousedown" then @drawMode = true
       if e.target.getAttribute("name")=="cell" and @drawMode == true
         @eventDispatcher.dispatch(new App.Utils.Event("clickcell"),{element:e.target,tool:"pen",width:2,color:@pen.color,row:e.target.getAttribute("data-row"),column:e.target.getAttribute("data-column")})
       return false
     return this
-  fillCell:(e)-> # speed up the grid rendering when filling one cell 
+  fillCell:(e)-> # speed up the grid rendering when filling one cell
     #tool = @model.toolbox.currentTool.value
     color = e.datas.color.value
     if  ["",undefined].indexOf(color) < 0
@@ -344,7 +357,7 @@ class App.Views.Title extends View
       e.currentTarget.style.border = ""
       @model.value = if e.currentTarget.innerText.trim() != "" then  e.currentTarget.innerText.trim() else @model.value
       @eventDispatcher.dispatch(new App.Utils.Event("titlechanged"),@model.value)
-      
+
     @model.onkeypress
     return this
 
@@ -513,7 +526,7 @@ class Main
     @view.grid.eventDispatcher.addListener("updateviews",@updateViews)
     @view.grid.eventDispatcher.addListener("clickcell",@clickcell) # user draw on a cell in the grid
     @view.grid.eventDispatcher.addListener("pushinhistory",@pushInHistory) # push grid state in history
-    @view.title.eventDispatcher.addListener("titlechanged",@titleChange) # title of grid edited 
+    @view.title.eventDispatcher.addListener("titlechanged",@titleChange) # title of grid edited
 
     @pushInHistory()
 

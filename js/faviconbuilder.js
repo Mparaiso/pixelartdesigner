@@ -6,6 +6,10 @@ var App, Main, View,
 if (typeof console === "undefined" || console === null) {
   console = {
     log: function() {}
+    /**
+    * @function
+    * @return Array
+    */
   };
 }
 
