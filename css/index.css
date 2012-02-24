@@ -77,6 +77,7 @@ span.tip{
 
 canvas{
   border: 1px solid #AAA;
+  background: #FFF;
 }
 #target{
 
@@ -88,7 +89,7 @@ canvas{
   width:370px;
 }
 #target._32{
-  width:775px;
+  width:750px;
 }
 #colorSelector,#left{
   width: 100px;
@@ -142,4 +143,9 @@ div[name=cell]:hover{
 #toolSelector img.selected{
   border:2px dashed #666;
   background: #CCC;
+}
+
+.black{
+background: #111;
+color:#EEE;
 }

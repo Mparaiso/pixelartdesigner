@@ -1,4 +1,18 @@
-var Controller, Main, View,
+﻿;
+/*
+  Icon builder
+  copyright 2010 Marc Paraiso
+  license : all right reserved
+  created with vim , coffeescript and chrome
+  version 0.1
+  contact mparaiso@online.fr
+  @author  Marc Paraiso
+  @version 0.1
+  @description  an online icon builder in javascript.It Helps designers create pixel art icons for the web , sprites or favicons
+  online.
+  @link mparaiso@online.fr
+*/
+var Controller, DrawingTool, Main, View,
   __hasProp = Object.prototype.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; },
   __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
@@ -26,7 +40,7 @@ if (typeof App === "undefined" || App === null) {
 App.Utils.DefaultColors = (function() {
 
   function DefaultColors() {
-    this.colors = [new App.Models.Color("Eraser", ""), new App.Models.Color("White", "#FFF"), new App.Models.Color("Gray2", "#DDD"), new App.Models.Color("Gray1", "#AAA"), new App.Models.Color("Gray2", "#777"), new App.Models.Color("Black", "#000"), new App.Models.Color("Red", "#900"), new App.Models.Color("Red", "#F00"), new App.Models.Color("Red", "#F99"), new App.Models.Color("Red", "#FDD"), new App.Models.Color("Green", "#090"), new App.Models.Color("Green", "#0F0"), new App.Models.Color("Green", "#9F9"), new App.Models.Color("Green", "#DFD"), new App.Models.Color("Blue", "#009"), new App.Models.Color("Blue", "#00F"), new App.Models.Color("Blue", "#99F"), new App.Models.Color("Blue", "#DDF"), new App.Models.Color("Yellow", "#FF0"), new App.Models.Color("Yellow", "#F90"), new App.Models.Color("Cyan", "#0FF"), new App.Models.Color("Cyan", "#099"), new App.Models.Color("Magenta", "#F0F"), new App.Models.Color("Magenta", "#909")];
+    this.colors = [new App.Models.Color("White", "#FFF"), new App.Models.Color("Gray2", "#DDD"), new App.Models.Color("Gray1", "#AAA"), new App.Models.Color("Gray2", "#777"), new App.Models.Color("Black", "#000"), new App.Models.Color("Red", "#900"), new App.Models.Color("Red", "#F00"), new App.Models.Color("Red", "#F99"), new App.Models.Color("Red", "#FDD"), new App.Models.Color("Green", "#090"), new App.Models.Color("Green", "#0F0"), new App.Models.Color("Green", "#9F9"), new App.Models.Color("Green", "#DFD"), new App.Models.Color("Blue", "#009"), new App.Models.Color("Blue", "#00F"), new App.Models.Color("Blue", "#99F"), new App.Models.Color("Blue", "#DDF"), new App.Models.Color("Yellow", "#FF0"), new App.Models.Color("Yellow", "#F90"), new App.Models.Color("Cyan", "#0FF"), new App.Models.Color("Cyan", "#099"), new App.Models.Color("Magenta", "#F0F"), new App.Models.Color("Magenta", "#909")];
   }
 
   return DefaultColors;
@@ -100,6 +114,22 @@ App.Utils.DefaultMenu = (function() {
       action: "emptygrid",
       title: "Create a new blank grid"
     }, {
+      label: "16x16 grid",
+      action: "changegridsize",
+      title: 'Change grid size',
+      datas: {
+        rows: 16,
+        columns: 16
+      }
+    }, {
+      label: "32x32 grid",
+      action: "changegridsize",
+      title: 'Change grid size',
+      datas: {
+        rows: 32,
+        columns: 32
+      }
+    }, {
       label: "Export to png",
       action: "exporttopng",
       title: "Export image as png in a new window (not available in Internet explorer)",
@@ -115,6 +145,19 @@ App.Utils.DefaultMenu = (function() {
       action: "restorefromlocal",
       title: "Restore previously saved icon.",
       datas: {}
+    }, {
+      label: "Switch background color",
+      action: "switchBackground",
+      title: "Switch background from White to Black",
+      datas: [
+        {
+          backgroundColor: "#111",
+          color: "#EEE"
+        }, {
+          backgroundColor: "#EEE",
+          color: "#111"
+        }
+      ]
     }, {
       label: "thickbox test",
       action: "showthickbox",
@@ -200,33 +243,88 @@ App.Utils.Iterator = (function(_super) {
 /* DRAWING TOOLS
 */
 
-App.Utils.Pen = (function() {
+DrawingTool = (function() {
 
-  function Pen() {}
+  DrawingTool.prototype.supportMouseMove = false;
+
+  function DrawingTool(target) {
+    this.target = target;
+  }
+
+  DrawingTool.prototype.factor = 1;
+
+  DrawingTool.prototype.draw = function(ctx, point, colCible) {};
+
+  DrawingTool.prototype.isInCanvas = function(ctx, pixel) {
+    var result, _ref, _ref2;
+    result = ((0 <= (_ref = pixel.x) && _ref < ctx.rows)) && ((0 <= (_ref2 = pixel.y) && _ref2 < ctx.columns));
+    return result;
+  };
+
+  return DrawingTool;
+
+})();
+
+App.Utils.Pen = (function(_super) {
+
+  __extends(Pen, _super);
+
+  function Pen() {
+    Pen.__super__.constructor.apply(this, arguments);
+  }
+
+  Pen.prototype.draw = function(ctx, point, newColor) {
+    return ctx.fillCell({
+      row: point.x,
+      column: point.y,
+      color: {
+        value: newColor
+      },
+      factor: this.factor
+    });
+  };
+
+  Pen.prototype.supportMouseMove = true;
 
   return Pen;
 
-})();
+})(DrawingTool);
 
-App.Utils.Eraser = (function() {
+App.Utils.Eraser = (function(_super) {
 
-  function Eraser() {}
+  __extends(Eraser, _super);
+
+  function Eraser() {
+    Eraser.__super__.constructor.apply(this, arguments);
+  }
+
+  Eraser.prototype.draw = function(ctx, point) {
+    return ctx.emptyCell({
+      row: point.x,
+      column: point.y
+    });
+  };
+
+  Eraser.prototype.supportMouseMove = true;
 
   return Eraser;
 
-})();
+})(DrawingTool);
 
-App.Utils.Bucket = (function() {
+App.Utils.Bucket = (function(_super) {
 
-  function Bucket() {}
+  __extends(Bucket, _super);
+
+  function Bucket(eventListener) {
+    console.log(eventListener);
+  }
 
   Bucket.prototype.MAXITERATION = 1000;
 
   Bucket.prototype.factor = 1;
 
-  Bucket.prototype.fill = function(ctx, pixel, colCible, colRep) {
+  Bucket.prototype.draw = function(ctx, pixel, colRep, colCible) {
     var P, currentpixel, max;
-    console.log("bucket fill", arguments);
     P = [];
     max = this.MAXITERATION;
     if (this.getColorAtPixel(ctx, pixel) !== colCible) return null;
@@ -234,7 +332,6 @@ App.Utils.Bucket = (function() {
     while (P.length > 0 && max >= 0) {
       --max;
       currentpixel = P.pop();
-      console.log(currentpixel);
       this.fillRect(ctx, currentpixel.x, currentpixel.y, colRep, this.factor);
       if (this.isInCanvas(ctx, currentpixel)) {
         if (this.getColorAtPixel(ctx, this.up(currentpixel)) === colCible) {
@@ -306,15 +403,9 @@ App.Utils.Bucket = (function() {
     return result;
   };
 
-  Bucket.prototype.isInCanvas = function(ctx, pixel) {
-    var result, _ref, _ref2;
-    result = ((0 <= (_ref = pixel.x) && _ref < ctx.rows)) && ((0 <= (_ref2 = pixel.y) && _ref2 < ctx.columns));
-    return result;
-  };
-
   return Bucket;
 
-})();
+})(DrawingTool);
 
 /* MODELS
 */
@@ -396,6 +487,10 @@ App.Models.Grid = (function() {
     return this.grid[params.row][params.column].alpha = 1;
   };
 
+  Grid.prototype.emptyCell = function(params) {
+    return this.grid[params.row][params.column].color.value = "";
+  };
+
   Grid.prototype.emptyGrid = function() {
     var i, j, _ref, _results;
     _results = [];
@@ -405,7 +500,7 @@ App.Models.Grid = (function() {
         var _ref2, _results2;
         _results2 = [];
         for (j = 0, _ref2 = this.columns; 0 <= _ref2 ? j < _ref2 : j > _ref2; 0 <= _ref2 ? j++ : j--) {
-          this.grid[i][j].color = "";
+          this.grid[i][j].color.value = "";
           _results2.push(this.grid[i][j].alpha = 1);
         }
         return _results2;
@@ -457,7 +552,7 @@ App.Models.FactorSelector = (function() {
   function FactorSelector(targetId, factor, selectors) {
     this.targetId = targetId;
     this.factor = factor;
-    this.selectors = selectors != null ? selectors : [1, 2, 3, 4];
+    this.selectors = selectors != null ? selectors : [1, 2, 3, 4, 8];
   }
 
   return FactorSelector;
@@ -515,7 +610,6 @@ View = (function() {
 
   View.prototype.render = function() {
     var child, _base, _results;
-    console.log("render views");
     _results = [];
     for (child in this) {
       _results.push(typeof (_base = this[child]).render === "function" ? _base.render() : void 0);
@@ -567,7 +661,6 @@ App.Views.Grid = (function(_super) {
     this.pen = pen != null ? pen : {};
     this.setPenColor = __bind(this.setPenColor, this);
     this.setDrawMode = __bind(this.setDrawMode, this);
-    this.drawMode = false;
     this.eventDispatcher = new App.Utils.EventDispatcher(this);
     this.eventDispatcher.addListener("drawmodechange", this.setDrawMode);
     this.divTargetId.classes = this.divTargetId.className;
@@ -594,9 +687,9 @@ App.Views.Grid = (function(_super) {
       return _this.eventDispatcher.dispatch(new App.Utils.Event("pushinhistory"), {});
     };
     this.divTargetId.onmousedown = function(e) {
-      if (e.type === "mousedown") _this.drawMode = true;
-      if (e.target.getAttribute("name") === "cell" && _this.drawMode === true) {
+      if (e.target.getAttribute("name") === "cell") {
         _this.eventDispatcher.dispatch(new App.Utils.Event("clickcell"), {
+          el: e.currentTarget,
           element: e.target,
           tool: "pen",
           width: 2,
@@ -612,13 +705,13 @@ App.Views.Grid = (function(_super) {
 
   Grid.prototype.fillCell = function(e) {
     var color;
-    color = e.datas.color.value;
+    color = e.color.value;
     if (["", void 0].indexOf(color) < 0) {
-      e.datas.element.style.backgroundColor = color;
-      return e.datas.element.className = "";
+      e.element.style.backgroundColor = color;
+      return e.element.className = "";
     } else {
-      e.datas.element.style.backgroundColor = null;
-      return e.datas.element.className += " " + this.emptyCellStyle;
+      e.element.style.backgroundColor = null;
+      return e.element.className += " " + this.emptyCellStyle;
     }
   };
 
@@ -870,7 +963,6 @@ App.Views.Toolbox = (function(_super) {
     this.targetId.innerHTML = this.el;
     this.targetId.onclick = function(e) {
       var name, tagName;
-      console.log("click");
       name = e.target.getAttribute("name");
       tagName = e.target.tagName;
       if (!(!(name != null) && tagName !== "IMG")) {
@@ -915,6 +1007,7 @@ App.Controllers.Application = (function(_super) {
 Main = (function() {
 
   function Main() {
+    this.switchBackground = __bind(this.switchBackground, this);
     this.showThickbox = __bind(this.showThickbox, this);
     this.selecFactor = __bind(this.selecFactor, this);
     this.updateViews = __bind(this.updateViews, this);
@@ -985,6 +1078,7 @@ Main = (function() {
     this.view.menu.eventDispatcher.addListener("showthickbox", this.showThickbox);
     this.view.menu.eventDispatcher.addListener("undo", this.undo);
     this.view.menu.eventDispatcher.addListener("redo", this.redo);
+    this.view.menu.eventDispatcher.addListener("switchBackground", this.switchBackground);
     this.view.factorSelector.eventDispatcher.addListener("selectfactor", this.selecFactor);
     this.view.grid.eventDispatcher.addListener("renderpreview", this.renderPreview);
     this.view.grid.eventDispatcher.addListener("updateViews", this.updateViews);
@@ -995,12 +1089,13 @@ Main = (function() {
   }
 
   Main.prototype.changeTool = function(e) {
-    var label,
+    var label, tool,
       _this = this;
     label = e.datas;
-    this.model.toolbox.currentTool.label = (this.model.toolbox.tools.filter(function(o) {
+    tool = this.model.toolbox.tools.filter(function(o) {
       return o.label === label;
-    }))[0];
+    });
+    this.model.toolbox.currentTool = tool[0];
     return this.updateViews();
   };
 
@@ -1027,23 +1122,47 @@ Main = (function() {
   };
 
   Main.prototype.clickcell = function(e) {
-    var bucket;
-    bucket = new App.Utils.BucketTool();
-    bucket.context = this.model.grid;
-    bucket.currentColor = e.datas.element.style.backgroundColor;
-    bucket.newColor = this.model.colorSelector.currentColor.value;
-    bucket.point = {
+    var tool,
+      _this = this;
+    this.isDrawing = true;
+    tool = new App.Utils[this.model.toolbox.currentTool["class"]](e.target);
+    tool.context = this.model.grid;
+    tool.currentColor = e.datas.element.style.backgroundColor;
+    tool.newColor = this.model.colorSelector.currentColor.value;
+    tool.point = {
       x: parseInt(e.datas.row, 10),
       y: parseInt(e.datas.column, 10)
     };
-    console.log("bucket", bucket);
-    bucket.fill(bucket.context, bucket.point, bucket.currentColor, bucket.newColor);
-    this.updateViews();
-    return bucket = null;
-    /*
-        @model.grid.fillCell(e.datas)
-        @view.grid.fillCell(e)
-    */
+    tool.draw(tool.context, tool.point, tool.newColor, tool.currentColor);
+    e.datas.el.onmouseup = function(e) {
+      console.log("mouse up");
+      _this.isDrawing = false;
+      tool = null;
+      _this.pushInHistory();
+      _this.updateViews();
+      return false;
+    };
+    if (tool.supportMouseMove === true) {
+      return e.datas.el.onmousemove = function(e) {
+        var color;
+        console.log("mouse down");
+        console.log(e);
+        if (e.target.getAttribute('name') === "cell" && _this.isDrawing === true) {
+          tool.draw(tool.context, {
+            x: parseInt(e.target.getAttribute("data-row")),
+            y: parseInt(e.target.getAttribute("data-column"))
+          }, tool.newColor, tool.currentColor);
+          color = {
+            value: tool.newColor
+          };
+          _this.view.grid.fillCell({
+            element: e.target,
+            color: color
+          });
+        }
+        return false;
+      };
+    }
   };
 
   Main.prototype.titleChange = function(e) {
@@ -1056,9 +1175,7 @@ Main = (function() {
   };
 
   Main.prototype.oncolorchange = function(e) {
-    console.log(arguments);
     this.model.colorSelector.currentColor.value = e.datas.color;
-    console.log(this.model.colorSelector.currentColor);
     return this.updateViews();
   };
 
@@ -1119,6 +1236,11 @@ Main = (function() {
     return this.thickbox.onclick = function(e) {
       return _this.showThickbox(e);
     };
+  };
+
+  Main.prototype.switchBackground = function(e) {
+    if (this.defaultclass == null) this.defaultclass = document.body.className;
+    return document.body.className = document.body.className === this.defaultclass ? this.defaultclass + " black" : this.defaultclass;
   };
 
   return Main;

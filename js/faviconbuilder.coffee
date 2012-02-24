@@ -1,3 +1,20 @@
+﻿
+###
+  Icon builder
+  copyright 2010 Marc Paraiso
+  license : all right reserved
+  created with vim , coffeescript and chrome
+  version 0.1
+  contact mparaiso@online.fr
+  @author  Marc Paraiso
+  @version 0.1
+  @description  an online icon builder in javascript.It Helps designers create pixel art icons for the web , sprites or favicons
+  online.
+  @link mparaiso@online.fr
+###
+
+#
+
 Array.prototype.split = (index)->
   if index < this.length
     q = this.length-index
@@ -15,7 +32,6 @@ class App.Utils.DefaultColors
   constructor:->
     @colors =
       [
-        new App.Models.Color("Eraser","")
         new App.Models.Color("White","#FFF")
         new App.Models.Color("Gray2","#DDD")
         new App.Models.Color("Gray1","#AAA")
@@ -66,11 +82,12 @@ class App.Utils.DefaultMenu
     {label:"Undo",action:"undo",title:"Restore the grid to the previous state"}
     {label:"Redo",action:"redo",title:"Restore the grid to the next state"}
     {label:"Empty grid",action:"emptygrid",title:"Create a new blank grid"}
-    #{label:"16x16 grid",action:"changegridsize",title:'Change grid size',datas:{rows:16,columns:16}}
-    #{label:"32x32 grid",action:"changegridsize",title:'Change grid size',datas:{rows:32,columns:32}}
+    {label:"16x16 grid",action:"changegridsize",title:'Change grid size',datas:{rows:16,columns:16}}
+    {label:"32x32 grid",action:"changegridsize",title:'Change grid size',datas:{rows:32,columns:32}}
     {label:"Export to png",action:"exporttopng",title:"Export image as png in a new window (not available in Internet explorer)",datas:{param:"whatever"}}
     {label:"Save to local",action:"savetolocal",title:"Save icon to local storage (not available in all browers !!) \n Click on restore to load the saved icon."}
     {label:"Restore from local",action:"restorefromlocal",title:"Restore previously saved icon.",datas:{}}
+    {label:"Switch background color",action:"switchBackground",title:"Switch background from White to Black",datas:[{backgroundColor:"#111",color:"#EEE"},{backgroundColor:"#EEE",color:"#111"}]}
     {label:"thickbox test",action:"showthickbox",title:"Show thick box , just a javascript CSS test , no special functionalities"}
   ]
 
@@ -101,17 +118,29 @@ class App.Utils.Iterator extends Array
       false
 
 ### DRAWING TOOLS ###
-
-class App.Utils.Pen
-
-class App.Utils.Eraser
-
-class App.Utils.Bucket
-
+class DrawingTool
+  supportMouseMove:false
+  constructor:(@target)->
+  factor:1
+  draw:(ctx,point,colCible)->
+  isInCanvas : (ctx,pixel)->
+    result = ((0 <= pixel.x < ctx.rows) and (0 <= pixel.y <ctx.columns))
+    return result
+  
+class App.Utils.Pen extends DrawingTool
+  draw:(ctx,point,newColor)->
+    ctx.fillCell({row:point.x,column:point.y,color:{value:newColor},factor:@factor})
+  supportMouseMove:true
+class App.Utils.Eraser extends DrawingTool
+  draw:(ctx,point)->
+    ctx.emptyCell({row:point.x,column:point.y})
+  supportMouseMove:true
+class App.Utils.Bucket extends DrawingTool
+  constructor:(eventListener)->
+    console.log eventListener
   MAXITERATION:1000
   factor:1
-  fill : (ctx,pixel, colCible, colRep)->
-    console.log "bucket fill",arguments
+  draw : (ctx,pixel, colRep, colCible)->
     P = []
     max = @MAXITERATION
     if @getColorAtPixel(ctx,pixel)!=colCible then return null
@@ -119,7 +148,6 @@ class App.Utils.Bucket
     while  P.length > 0 and max >=0
       --max
       currentpixel = P.pop()
-      console.log currentpixel
       @fillRect(ctx,currentpixel.x,currentpixel.y,colRep,@factor)
       if @isInCanvas(ctx,currentpixel)
         if @getColorAtPixel(ctx,@up(currentpixel)) == colCible then P.push(@up(currentpixel))
@@ -152,9 +180,7 @@ class App.Utils.Bucket
     result = "rgb(#{array[0]},#{array[1]},#{array[2]})"
     return result
 
-  isInCanvas : (ctx,pixel)->
-    result = ((0 <= pixel.x < ctx.rows) and (0 <= pixel.y <ctx.columns))
-    return result
+#
 
 ### MODELS ###
 
@@ -186,11 +212,13 @@ class App.Models.Grid
   fillCell:(params)->
     @grid[params.row][params.column].color.value = params.color.value
     @grid[params.row][params.column].alpha = 1
+  emptyCell:(params)->
+    @grid[params.row][params.column].color.value = ""
   emptyGrid:->
     for i in [0...@rows]
       @grid.push []
       for j in [0...@columns]
-        @grid[i][j].color = ""
+        @grid[i][j].color.value = ""
         @grid[i][j].alpha = 1
 
 class App.Models.Title
@@ -203,7 +231,7 @@ class App.Models.CanvasPreview
   constructor:(@targetId,@model,@factor=4)->
 
 class App.Models.FactorSelector
-  constructor:(@targetId,@factor,@selectors=[1,2,3,4])->
+  constructor:(@targetId,@factor,@selectors=[1,2,3,4,8])->
 
 class App.Models.Menu
   constructor:(@items=[],@targetId)->
@@ -223,7 +251,6 @@ class App.Models.Toolbox
 class View
   eventDispatcher:new App.Utils.EventDispatcher(@)
   render:->
-    console.log "render views"
     for child of this
       @[child].render?()
 
@@ -243,7 +270,6 @@ class App.Views.Cell extends View
 
 class App.Views.Grid extends View
   constructor:(@divTargetId,@model,@cellStyle="cell",@emptyCellStyle="emptyCell",@pen={})->
-    @drawMode = false
     @eventDispatcher = new App.Utils.EventDispatcher(this)
     @eventDispatcher.addListener("drawmodechange",@setDrawMode)
     @divTargetId.classes = @divTargetId.className
@@ -264,20 +290,19 @@ class App.Views.Grid extends View
       @eventDispatcher.dispatch(new App.Utils.Event("pushinhistory"),{})
     #@divTargetId.onmousemove =
     @divTargetId.onmousedown = (e)=>
-      if e.type == "mousedown" then @drawMode = true
-      if e.target.getAttribute("name")=="cell" and @drawMode == true
-        @eventDispatcher.dispatch(new App.Utils.Event("clickcell"),{element:e.target,tool:"pen",width:2,color:@pen.color,row:e.target.getAttribute("data-row"),column:e.target.getAttribute("data-column")})
+      if e.target.getAttribute("name")=="cell"
+        @eventDispatcher.dispatch(new App.Utils.Event("clickcell"),{el:e.currentTarget,element:e.target,tool:"pen",width:2,color:@pen.color,row:e.target.getAttribute("data-row"),column:e.target.getAttribute("data-column")})
       return false
     return this
   fillCell:(e)-> # speed up the grid rendering when filling one cell
     #tool = @model.toolbox.currentTool.value
-    color = e.datas.color.value
+    color = e.color.value
     if  ["",undefined].indexOf(color) < 0
-      e.datas.element.style.backgroundColor = color
-      e.datas.element.className  = ""
+      e.element.style.backgroundColor = color
+      e.element.className  = ""
     else
-      e.datas.element.style.backgroundColor = null
-      e.datas.element.className  += " #{@emptyCellStyle}"
+      e.element.style.backgroundColor = null
+      e.element.className  += " #{@emptyCellStyle}"
 
 
 
@@ -415,7 +440,6 @@ class App.Views.Toolbox extends View
     @el+="<br/><h5>#{@model.currentTool.title}</h5>"
     @targetId.innerHTML = @el
     @targetId.onclick =(e)=>
-      console.log "click"
       name = e.target.getAttribute("name")
       tagName = e.target.tagName
       @eventDispatcher.dispatch(new App.Utils.Event("changetool"),name) unless not name? and tagName != "IMG"
@@ -480,6 +504,7 @@ class Main
     @view.menu.eventDispatcher.addListener("showthickbox",@showThickbox)
     @view.menu.eventDispatcher.addListener("undo",@undo)
     @view.menu.eventDispatcher.addListener("redo",@redo)
+    @view.menu.eventDispatcher.addListener("switchBackground",@switchBackground)
     @view.factorSelector.eventDispatcher.addListener("selectfactor",@selecFactor)
     @view.grid.eventDispatcher.addListener("renderpreview",@renderPreview) # rendercanvas preview
     @view.grid.eventDispatcher.addListener("updateViews",@updateViews)
@@ -489,8 +514,9 @@ class Main
     @pushInHistory()
 
   changeTool:(e)=>
-    label = e.datas
-    @model.toolbox.currentTool.label = (@model.toolbox.tools.filter((o)=>(o.label == label)))[0]
+    label = e.datas #recupere les donnees de l'evenement
+    tool = @model.toolbox.tools.filter( (o)=>(o.label == label) ) # filtre le tableau des tools
+    @model.toolbox.currentTool = tool[0] # met a jour l'outil courant
     @updateViews()
   pushInHistory:(e)=>
     if  @model.history.iterator.hasNext()
@@ -506,30 +532,36 @@ class Main
       @model.grid.grid =  @model.history.iterator.next().grid
       @view.render()
   clickcell:(e)=>
-    bucket = new App.Utils.BucketTool()
-    bucket.context = @model.grid
-    bucket.currentColor = e.datas.element.style.backgroundColor
-    bucket.newColor = @model.colorSelector.currentColor.value
-    bucket.point = {x:parseInt(e.datas.row,10),y:parseInt(e.datas.column,10)}
-    console.log "bucket",bucket
-    bucket.fill(bucket.context,bucket.point,bucket.currentColor,bucket.newColor)
-    @updateViews()
-    bucket =null
-    ###
-    @model.grid.fillCell(e.datas)
-    @view.grid.fillCell(e)
-    ###
+    @isDrawing = true
+    tool = new App.Utils[@model.toolbox.currentTool.class](e.target)
+    tool.context = @model.grid
+    tool.currentColor = e.datas.element.style.backgroundColor
+    tool.newColor = @model.colorSelector.currentColor.value
+    tool.point = {x:parseInt(e.datas.row,10),y:parseInt(e.datas.column,10)}
+    tool.draw(tool.context,tool.point,tool.newColor,tool.currentColor)
+    e.datas.el.onmouseup=(e)=>
+      console.log "mouse up"
+      @isDrawing = false
+      tool = null
+      @pushInHistory()
+      @updateViews()
+      return false
+    if tool.supportMouseMove == true
+      e.datas.el.onmousemove=(e)=>
+        console.log "mouse down"
+        console.log(e)
+        if e.target.getAttribute('name')=="cell" and @isDrawing == true
+          tool.draw(tool.context,{x:parseInt(e.target.getAttribute("data-row")),y:parseInt(e.target.getAttribute("data-column"))},tool.newColor,tool.currentColor)
+          color  = {value:tool.newColor}
+          @view.grid.fillCell({element:e.target,color:color})
+        return false
   titleChange:(e)=>
     @model.grid.title = e.datas
     @updateViews()
   renderPreview:(e)=>
     @view.canvasPreview.render()
   oncolorchange:(e)=>
-    console.log arguments
     @model.colorSelector.currentColor.value = e.datas.color
-    console.log @model.colorSelector.currentColor
-    #@model.colorSelector.currentColor.title = e.datas.title
-    #
     @updateViews()
   exportCanvas:(e)=>
     window.open(@model.canvasPreview.targetId.getElementsByTagName('canvas')[0].toDataURL("image/png"))
@@ -568,6 +600,8 @@ class Main
     @thickbox.style.opacity = if parseInt(@thickbox.style.opacity)<1 then 1 else 0
     @thickbox.onclick= (e)=>
       @showThickbox(e)
-
+  switchBackground:(e)=>
+    @defaultclass?=document.body.className
+    document.body.className = if document.body.className==@defaultclass then @defaultclass+" black" else @defaultclass
 window?.onload = ->
   window.main = new Main()
