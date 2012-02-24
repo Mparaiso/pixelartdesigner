@@ -1,17 +1,7 @@
-var App, Main, View,
+var Controller, Main, View,
   __hasProp = Object.prototype.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; },
   __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
-
-if (typeof console === "undefined" || console === null) {
-  console = {
-    log: function() {}
-    /**
-    * @function
-    * @return Array
-    */
-  };
-}
 
 Array.prototype.split = function(index) {
   var q;
@@ -21,15 +11,14 @@ Array.prototype.split = function(index) {
   }
 };
 
-App = {
-  Views: {},
-  Models: {},
-  Controllers: {},
-  Collections: {},
-  Utils: {},
-  Lib: {},
-  Ajax: {}
-};
+if (typeof App === "undefined" || App === null) {
+  App = {
+    Views: {},
+    Models: {},
+    Controllers: {},
+    Utils: {}
+  };
+}
 
 /* UTILITIES
 */
@@ -61,9 +50,8 @@ App.Utils.EventDispatcher = (function() {
 
   function EventDispatcher(parent) {
     this.parent = parent;
+    this.listeners = [];
   }
-
-  EventDispatcher.prototype.listeners = [];
 
   EventDispatcher.prototype.addListener = function(eventName, listener) {
     return this.listeners.push({
@@ -73,20 +61,14 @@ App.Utils.EventDispatcher = (function() {
   };
 
   EventDispatcher.prototype.dispatch = function(event, datas) {
-    var i, _i, _len, _ref, _results;
+    var i, _i, _len, _ref;
     event.target = event.currentTarget = this.parent;
     event.datas = datas;
     _ref = this.listeners;
-    _results = [];
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       i = _ref[_i];
-      if (event.type === i.eventName) {
-        _results.push(i.listener(event));
-      } else {
-        _results.push(void 0);
-      }
+      if (event.type === i.eventName) i.listener(event);
     }
-    return _results;
   };
 
   EventDispatcher.prototype.removeListener = function(eventName, listener) {
@@ -153,17 +135,20 @@ App.Utils.Toolbox = (function() {
       label: "pen",
       src: "img//pen.png",
       action: "drawpoint",
-      title: "pen"
+      title: "a pen tool",
+      "class": "Pen"
     }, {
       label: "bucket",
       src: "img//bucket.png",
       action: "drawfill",
-      title: "bucket"
+      title: "a bucket tool",
+      "class": "Bucket"
     }, {
-      label: "rubber",
+      label: "eraser",
       src: "img//rubber.png",
       action: "erase",
-      title: "rubber"
+      title: "an eraser tool",
+      "class": "Eraser"
     }
   ];
 
@@ -215,32 +200,31 @@ App.Utils.Iterator = (function(_super) {
 /* DRAWING TOOLS
 */
 
-App.Utils.Tool = (function() {
+App.Utils.Pen = (function() {
 
-  function Tool(context, point) {
-    this.context = context;
-    this.point = point;
-  }
+  function Pen() {}
 
-  Tool.prototype.execute = function() {};
-
-  return Tool;
+  return Pen;
 
 })();
 
-App.Utils.BucketTool = (function(_super) {
+App.Utils.Eraser = (function() {
 
-  __extends(BucketTool, _super);
+  function Eraser() {}
 
-  function BucketTool() {
-    BucketTool.__super__.constructor.apply(this, arguments);
-  }
+  return Eraser;
 
-  BucketTool.prototype.MAXITERATION = 1000;
+})();
 
-  BucketTool.prototype.factor = 1;
+App.Utils.Bucket = (function() {
 
-  BucketTool.prototype.fill = function(ctx, pixel, colCible, colRep) {
+  function Bucket() {}
+
+  Bucket.prototype.MAXITERATION = 1000;
+
+  Bucket.prototype.factor = 1;
+
+  Bucket.prototype.fill = function(ctx, pixel, colCible, colRep) {
     var P, currentpixel, max;
     console.log("bucket fill", arguments);
     P = [];
@@ -269,68 +253,68 @@ App.Utils.BucketTool = (function(_super) {
     }
   };
 
-  BucketTool.prototype.fillRect = function(ctx, x, y, _color, _factor) {
+  Bucket.prototype.fillRect = function(ctx, x, y, _color, _factor) {
     ctx.fillCell({
       row: x,
       column: y,
       color: {
-        color: _color
+        value: _color
       },
       factor: _factor
     });
   };
 
-  BucketTool.prototype.down = function(pixel) {
+  Bucket.prototype.down = function(pixel) {
     return {
       x: pixel.x,
       y: pixel.y - this.factor
     };
   };
 
-  BucketTool.prototype.up = function(pixel) {
+  Bucket.prototype.up = function(pixel) {
     return {
       x: pixel.x,
       y: pixel.y + this.factor
     };
   };
 
-  BucketTool.prototype.right = function(pixel) {
+  Bucket.prototype.right = function(pixel) {
     return {
       x: pixel.x + this.factor,
       y: pixel.y
     };
   };
 
-  BucketTool.prototype.left = function(pixel) {
+  Bucket.prototype.left = function(pixel) {
     return {
       x: pixel.x - this.factor,
       y: pixel.y
     };
   };
 
-  BucketTool.prototype.getColorAtPixel = function(ctx, pixel) {
+  Bucket.prototype.getColorAtPixel = function(ctx, pixel) {
     var result;
     if (this.isInCanvas(ctx, pixel) && (ctx.grid[pixel.x][pixel.y] != null)) {
-      result = ctx.grid[pixel.x][pixel.y].color;
+      result = ctx.grid[pixel.x][pixel.y].color.value;
     }
     return result;
   };
 
-  BucketTool.prototype.rgbArrayToCssColorString = function(array) {
+  Bucket.prototype.rgbArrayToCssColorString = function(array) {
     var result;
     result = "rgb(" + array[0] + "," + array[1] + "," + array[2] + ")";
     return result;
   };
 
-  BucketTool.prototype.isInCanvas = function(ctx, pixel) {
+  Bucket.prototype.isInCanvas = function(ctx, pixel) {
     var result, _ref, _ref2;
     result = ((0 <= (_ref = pixel.x) && _ref < ctx.rows)) && ((0 <= (_ref2 = pixel.y) && _ref2 < ctx.columns));
     return result;
   };
 
-  return BucketTool;
+  return Bucket;
 
-})(App.Utils.Tool);
+})();
 
 /* MODELS
 */
@@ -408,7 +392,7 @@ App.Models.Grid = (function() {
   };
 
   Grid.prototype.fillCell = function(params) {
-    this.grid[params.row][params.column].color = params.color;
+    this.grid[params.row][params.column].color.value = params.color.value;
     return this.grid[params.row][params.column].alpha = 1;
   };
 
@@ -513,9 +497,7 @@ App.Models.Toolbox = (function() {
 
   function Toolbox(tools) {
     this.tools = tools;
-    this.currentTool = {
-      value: this.tools[0].label
-    };
+    this.currentTool = this.tools[0];
   }
 
   return Toolbox;
@@ -529,8 +511,11 @@ View = (function() {
 
   function View() {}
 
+  View.prototype.eventDispatcher = new App.Utils.EventDispatcher(View);
+
   View.prototype.render = function() {
     var child, _base, _results;
+    console.log("render views");
     _results = [];
     for (child in this) {
       _results.push(typeof (_base = this[child]).render === "function" ? _base.render() : void 0);
@@ -559,7 +544,7 @@ App.Views.Cell = (function(_super) {
       this.el += " style='background-color:" + this.model.color.value + ";' ";
     }
     this.el += " data-row='" + this.model.row + "' data-column='" + this.model.column + "' ";
-    this.el += " > </div> ";
+    this.el += " ></div>";
     if (typeof targetId !== "undefined" && targetId !== null) {
       this.targetId.innerHTML = this.el;
     }
@@ -668,12 +653,6 @@ App.Views.Application = (function(_super) {
     return this.children.splice(this.children.indexOf(view), 1);
   };
 
-  /*
-    render:->
-      for child in @children
-        child.render?()
-  */
-
   return Application;
 
 })(View);
@@ -779,11 +758,11 @@ App.Views.CanvasPreview = (function(_super) {
       for (j = 0, _ref2 = gridModel.columns; 0 <= _ref2 ? j < _ref2 : j > _ref2; 0 <= _ref2 ? j++ : j--) {
         x = j * this.model.factor;
         y = i * this.model.factor;
-        if (gridModel.grid[i][j].color === null || gridModel.grid[i][j].color === "") {
+        if (gridModel.grid[i][j].color.value === null || gridModel.grid[i][j].color.value === "") {
           ctx.fillStyle = "#FFFFFF";
           ctx.globalAlpha = 0;
         } else {
-          ctx.fillStyle = gridModel.grid[i][j].color;
+          ctx.fillStyle = gridModel.grid[i][j].color.value;
           ctx.globalAlpha = gridModel.grid[i][j].alpha;
         }
         ctx.fillRect(x, y, this.model.factor, this.model.factor);
@@ -885,11 +864,13 @@ App.Views.Toolbox = (function(_super) {
     _ref = this.model.tools;
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       tool = _ref[_i];
-      this.el += "<img title='" + tool.title + "' name='" + tool.label + "' " + (tool.title === this.model.currentTool.value ? "class='selected'" : "") + " src='" + tool.src + "'/>";
+      this.el += "<img data-class=" + tool["class"] + " title='" + tool.title + "' name='" + tool.label + "' " + (tool.label === this.model.currentTool.label ? "class='selected'" : "") + " src='" + tool.src + "'/>";
     }
-    this.el += "<br/><h5>" + this.model.currentTool.value + "</h5>";
+    this.el += "<br/><h5>" + this.model.currentTool.title + "</h5>";
+    this.targetId.innerHTML = this.el;
     this.targetId.onclick = function(e) {
       var name, tagName;
+      console.log("click");
       name = e.target.getAttribute("name");
       tagName = e.target.tagName;
       if (!(!(name != null) && tagName !== "IMG")) {
@@ -897,7 +878,6 @@ App.Views.Toolbox = (function(_super) {
       }
       return false;
     };
-    this.targetId.innerHTML = this.el;
     return this;
   };
 
@@ -908,7 +888,17 @@ App.Views.Toolbox = (function(_super) {
 /* CONTROLLERS
 */
 
-App.Controllers.Application = (function() {
+Controller = (function() {
+
+  function Controller() {}
+
+  return Controller;
+
+})();
+
+App.Controllers.Application = (function(_super) {
+
+  __extends(Application, _super);
 
   function Application(model) {
     this.model = model;
@@ -917,7 +907,7 @@ App.Controllers.Application = (function() {
 
   return Application;
 
-})();
+})(Controller);
 
 /* MAIN
 */
@@ -943,7 +933,6 @@ Main = (function() {
     this.changeTool = __bind(this.changeTool, this);
     var $app, $canvasPreview, $colorSelector, $factorSelector, $menu, $target, $title, $toolbox, title;
     console.log("favicon builder at " + (new Date()));
-    "use strict";
     this.version = 0.1;
     this.thickbox = document.getElementById("thickbox");
     $app = document.getElementById("app");
@@ -984,7 +973,7 @@ Main = (function() {
     this.view.title = new App.Views.Title(this.model.title);
     this.view.grid.setPenColor(this.model.currentColor);
     this.view.menu = new App.Views.Menu(this.model.menu);
-    this.view.render();
+    this.updateViews();
     /* EVENTS
     */
     this.view.toolbox.eventDispatcher.addListener("changetool", this.changeTool);
@@ -998,7 +987,7 @@ Main = (function() {
     this.view.menu.eventDispatcher.addListener("redo", this.redo);
     this.view.factorSelector.eventDispatcher.addListener("selectfactor", this.selecFactor);
     this.view.grid.eventDispatcher.addListener("renderpreview", this.renderPreview);
-    this.view.grid.eventDispatcher.addListener("updateviews", this.updateViews);
+    this.view.grid.eventDispatcher.addListener("updateViews", this.updateViews);
     this.view.grid.eventDispatcher.addListener("clickcell", this.clickcell);
     this.view.grid.eventDispatcher.addListener("pushinhistory", this.pushInHistory);
     this.view.title.eventDispatcher.addListener("titlechanged", this.titleChange);
@@ -1006,8 +995,13 @@ Main = (function() {
   }
 
   Main.prototype.changeTool = function(e) {
-    this.model.toolbox.currentTool.value = e.datas;
-    return this.view.render();
+    var label,
+      _this = this;
+    label = e.datas;
+    this.model.toolbox.currentTool.label = (this.model.toolbox.tools.filter(function(o) {
+      return o.label === label;
+    }))[0];
+    return this.updateViews();
   };
 
   Main.prototype.pushInHistory = function(e) {
@@ -1133,6 +1127,6 @@ Main = (function() {
 
 if (typeof window !== "undefined" && window !== null) {
   window.onload = function() {
-    return typeof window !== "undefined" && window !== null ? window.main = new Main() : void 0;
+    return window.main = new Main();
   };
 }

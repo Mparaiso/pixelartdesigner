@@ -3,9 +3,9 @@
 @import url('messagebox.css'); /* message box */
 @import url('unselectable.css'); /*unselectable*/
 h1,h2,h3,h4,h5,h6,div,p,img{
-border:none;
-margin:0;
-padding:0;
+  border:none;
+  margin:0;
+  padding:0;
 }
 body{
   font-family:Helvetica,'Arial Narrow', sans-serif;
@@ -18,7 +18,7 @@ h1,h2,h3,h4{
   margin-bottom: 5px;
 }
 h5,h6{
-margin-top: 6px;
+  margin-top: 6px;
 
 }
 #header{
@@ -69,8 +69,10 @@ span.tip{
   color:#EEE;
 }
 .nav input[type=button]{
-border: 1px solid #000;
-width:100%;
+  border: 1px solid #000;
+
+  background:#EEE;
+  width:100%;
 }
 
 canvas{
@@ -83,7 +85,7 @@ canvas{
   font-size: 13px;
 }
 #target._16{
-  width:395px;
+  width:370px;
 }
 #target._32{
   width:775px;
@@ -113,7 +115,7 @@ canvas{
 div[name=cell]{
   width:20px;
   height:20px;
-  margin:-2px -2px 0px 0px;
+  margin:-2px 1px 0px 0px;
   padding: 0;
   line-height: 0;
   display: inline-block;

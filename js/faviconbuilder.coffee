@@ -1,40 +1,14 @@
-
-# FAVICON BUILDER
-# @version 0.1
-# @author M.Paraiso
-#
-
-#
-# @description EN
-
-
-console?=
-  log:->
-    return
-#
-
-###*
-* @function
-* @return Array
-###
 Array.prototype.split = (index)->
   if index < this.length
     q = this.length-index
     return this.splice(index,q)
 
-
-###*
-* @namespace
-###
-App = {
-  Views:{}
-  Models:{}
+App ?={
+  Views :{}
+  Models :{}
   Controllers:{}
-  Collections:{}
   Utils:{}
-  Lib:{}
-  Ajax:{}
-  }
+}
 
 ### UTILITIES ###
 class App.Utils.DefaultColors
@@ -73,30 +47,19 @@ class App.Utils.Event
     @target=null
     @currentTarget=null
 
-# App.Utils.EventDispatcher
-# -------------------------
-#
-#### FR :
-#<ul>
-#  <li>imite le system d'évenements __flash__.
-#  <li>Etend Object.prototype
-#  <li> les objets implementent 3 méthodes : dispatch , addListener , removeListener
-#  <li> l'objet Event du DOM est utilisé par défaut pour transmettre les messages.
-#  <li> on peut récuperer des données de l'évenement grace au champ datas de l'objet event
-#  <li> currentTarget et target permettent de savoir dans quel context l'évenement a été dispatché ( émit )
 class App.Utils.EventDispatcher
-    constructor:(@parent)->
-    listeners : []
-    addListener : (eventName,listener)->
-      this.listeners.push({"eventName":eventName,"listener":listener})
-    dispatch : (event,datas)->
-      #throw new Error("event should be an instance of Event") unless event instanceof Event
-      event.target = event.currentTarget =  @parent
-      event.datas = datas
-      for i in this.listeners
-        i.listener(event) unless event.type != i.eventName
-    removeListener : (eventName,listener)->
-      this.listeners.splice(this.listeners.indexOf({"eventName":eventName,"listener":listener}),1)
+  constructor:(@parent)->
+    @listeners = []
+  addListener : (eventName,listener)->
+    this.listeners.push({"eventName":eventName,"listener":listener})
+  dispatch : (event,datas)->
+    event.target = event.currentTarget =  @parent
+    event.datas = datas
+    for i in this.listeners
+      i.listener(event) unless event.type != i.eventName
+    return
+  removeListener : (eventName,listener)->
+    this.listeners.splice(this.listeners.indexOf({"eventName":eventName,"listener":listener}),1)
 
 class App.Utils.DefaultMenu
   items:[
@@ -113,38 +76,37 @@ class App.Utils.DefaultMenu
 
 class App.Utils.Toolbox
   tools:[
-    {label:"pen",src:"img//pen.png",action:"drawpoint",title:"pen"}
-    {label:"bucket",src:"img//bucket.png",action:"drawfill",title:"bucket"}
-    {label:"rubber",src:"img//rubber.png",action:"erase",title:"rubber"}
+    {label:"pen",src:"img//pen.png",action:"drawpoint",title:"a pen tool",class:"Pen"}
+    {label:"bucket",src:"img//bucket.png",action:"drawfill",title:"a bucket tool",class:"Bucket"}
+    {label:"eraser",src:"img//rubber.png",action:"erase",title:"an eraser tool",class:"Eraser"}
   ]
 
 class App.Utils.Iterator extends Array
-    constructor:->
-      @push i for i in arguments
-      @iter = 0
-    next:->
-       @[++@iter] if @iter < @length-1
-    previous:->
-       @[--@iter] if @iter>0
-    hasNext:->
-      if @[@iter+1]
-        true
-      else
-        false
-    hasPrevious:->
-      if @[@iter-1]
-        true
-      else
-        false
-
+  constructor:->
+    @push i for i in arguments
+    @iter = 0
+  next:->
+    @[++@iter] if @iter < @length-1
+  previous:->
+    @[--@iter] if @iter>0
+  hasNext:->
+    if @[@iter+1]
+      true
+    else
+      false
+  hasPrevious:->
+    if @[@iter-1]
+      true
+    else
+      false
 
 ### DRAWING TOOLS ###
 
-class App.Utils.Tool
-  constructor:(@context,@point)->
-  execute:->
+class App.Utils.Pen
 
-class App.Utils.BucketTool extends App.Utils.Tool
+class App.Utils.Eraser
+
+class App.Utils.Bucket
 
   MAXITERATION:1000
   factor:1
@@ -167,7 +129,7 @@ class App.Utils.BucketTool extends App.Utils.Tool
     return
 
   fillRect:(ctx,x,y,_color,_factor)->
-    ctx.fillCell({row:x,column:y,color:{color:_color},factor:_factor})
+    ctx.fillCell({row:x,column:y,color:{value:_color},factor:_factor})
     return
   down :(pixel)->
     return {x:pixel.x,y:pixel.y-@factor}
@@ -183,7 +145,7 @@ class App.Utils.BucketTool extends App.Utils.Tool
 
   getColorAtPixel:(ctx,pixel)->
     if @isInCanvas(ctx,pixel) and ctx.grid[pixel.x][pixel.y]?
-      result = ctx.grid[pixel.x][pixel.y].color
+      result = ctx.grid[pixel.x][pixel.y].color.value
     return result
 
   rgbArrayToCssColorString:(array)->
@@ -194,9 +156,8 @@ class App.Utils.BucketTool extends App.Utils.Tool
     result = ((0 <= pixel.x < ctx.rows) and (0 <= pixel.y <ctx.columns))
     return result
 
-
-
 ### MODELS ###
+
 class App.Models.Color
   constructor:(@title="Eraser",@value="",@alpha=1)->
 
@@ -223,7 +184,7 @@ class App.Models.Grid
       for j in [0... @columns]
         @grid[i][j]?= new  App.Models.Cell()
   fillCell:(params)->
-    @grid[params.row][params.column].color = params.color
+    @grid[params.row][params.column].color.value = params.color.value
     @grid[params.row][params.column].alpha = 1
   emptyGrid:->
     for i in [0...@rows]
@@ -256,11 +217,13 @@ class App.Models.History
 
 class App.Models.Toolbox
   constructor:(@tools)->
-    @currentTool = {value:@tools[0].label}
+    @currentTool = @tools[0]
 
 ### VIEWS ###
 class View
+  eventDispatcher:new App.Utils.EventDispatcher(@)
   render:->
+    console.log "render views"
     for child of this
       @[child].render?()
 
@@ -273,11 +236,10 @@ class App.Views.Cell extends View
     else
       @el+= " style='background-color:#{@model.color.value};' "
     @el+= " data-row='#{@model.row}' data-column='#{@model.column}' "
-    @el+= " > </div> "
+    @el+= " ></div>"
     if targetId?
       @targetId.innerHTML = @el
     return this
-
 
 class App.Views.Grid extends View
   constructor:(@divTargetId,@model,@cellStyle="cell",@emptyCellStyle="emptyCell",@pen={})->
@@ -332,11 +294,7 @@ class App.Views.Application extends View
     @children.push(view)
   removeChild:(view)->
     @children.splice(@children.indexOf(view),1)
-  ###
-  render:->
-    for child in @children
-      child.render?()
-  ###
+
 class App.Views.Title extends View
   constructor:(@model)->
     @eventDispatcher = new App.Utils.EventDispatcher(this)
@@ -398,11 +356,11 @@ class App.Views.CanvasPreview extends View
       for j in [0...gridModel.columns]
         x = j*@model.factor
         y = i*@model.factor
-        if gridModel.grid[i][j].color==null or gridModel.grid[i][j].color==""
+        if gridModel.grid[i][j].color.value==null or gridModel.grid[i][j].color.value==""
           ctx.fillStyle = "#FFFFFF"
           ctx.globalAlpha = 0
         else
-          ctx.fillStyle = gridModel.grid[i][j].color
+          ctx.fillStyle = gridModel.grid[i][j].color.value
           ctx.globalAlpha = gridModel.grid[i][j].alpha
         ctx.fillRect(x,y,@model.factor,@model.factor)
 
@@ -453,18 +411,20 @@ class App.Views.Toolbox extends View
   render:->
     @el = ""
     for tool in @model.tools
-      @el += "<img title='#{tool.title}' name='#{tool.label}' #{if tool.title == @model.currentTool.value then "class='selected'" else "" } src='#{tool.src}'/>"
-    @el+="<br/><h5>#{@model.currentTool.value}</h5>"
+      @el += "<img data-class=#{tool.class} title='#{tool.title}' name='#{tool.label}' #{if tool.label == @model.currentTool.label then "class='selected'" else "" } src='#{tool.src}'/>"
+    @el+="<br/><h5>#{@model.currentTool.title}</h5>"
+    @targetId.innerHTML = @el
     @targetId.onclick =(e)=>
+      console.log "click"
       name = e.target.getAttribute("name")
       tagName = e.target.tagName
       @eventDispatcher.dispatch(new App.Utils.Event("changetool"),name) unless not name? and tagName != "IMG"
       return false
-    @targetId.innerHTML = @el
     return this
 
 ### CONTROLLERS ###
-class App.Controllers.Application
+class Controller
+class App.Controllers.Application extends Controller
   constructor:(@model)->
     @view = null
 
@@ -472,7 +432,6 @@ class App.Controllers.Application
 class Main
   constructor:->
     console.log "favicon builder at #{new Date()}"
-    "use strict"
     @version = 0.1
     # DOM
     @thickbox = document.getElementById("thickbox")
@@ -510,7 +469,7 @@ class Main
     @view.title = new App.Views.Title(@model.title)
     @view.grid.setPenColor(@model.currentColor)
     @view.menu = new App.Views.Menu(@model.menu)
-    @view.render() # render all child views
+    @updateViews() # render all child views
     ### EVENTS ###
     @view.toolbox.eventDispatcher.addListener("changetool",@changeTool)
     @view.menu.eventDispatcher.addListener("exporttopng",@exportCanvas)
@@ -523,16 +482,16 @@ class Main
     @view.menu.eventDispatcher.addListener("redo",@redo)
     @view.factorSelector.eventDispatcher.addListener("selectfactor",@selecFactor)
     @view.grid.eventDispatcher.addListener("renderpreview",@renderPreview) # rendercanvas preview
-    @view.grid.eventDispatcher.addListener("updateviews",@updateViews)
+    @view.grid.eventDispatcher.addListener("updateViews",@updateViews)
     @view.grid.eventDispatcher.addListener("clickcell",@clickcell) # user draw on a cell in the grid
     @view.grid.eventDispatcher.addListener("pushinhistory",@pushInHistory) # push grid state in history
     @view.title.eventDispatcher.addListener("titlechanged",@titleChange) # title of grid edited
-
     @pushInHistory()
 
   changeTool:(e)=>
-    @model.toolbox.currentTool.value = e.datas
-    @view.render()
+    label = e.datas
+    @model.toolbox.currentTool.label = (@model.toolbox.tools.filter((o)=>(o.label == label)))[0]
+    @updateViews()
   pushInHistory:(e)=>
     if  @model.history.iterator.hasNext()
       @model.history.iterator.split(@model.history.iterator)
@@ -611,4 +570,4 @@ class Main
       @showThickbox(e)
 
 window?.onload = ->
-  window?.main = new Main()
+  window.main = new Main()
