@@ -1,30 +1,20 @@
 /*
-  FAVICON BUILDER
+  Icon builder
+  copyright 2010 Marc Paraiso
+  license : all right reserved
+  created with vim , coffeescript and chrome
+  version 0.1
+  contact mparaiso@online.fr
+  @author  Marc Paraiso
   @version 0.1
-  @author M.Paraiso
-
-  EVENT DISPATCHER
-
-  @description FR
-  imite le system d'évenements de flash.
-  Etend Object.prototype
-  les objets implementent 3 méthodes : dispatch , addListener , removeListener
-  l'objet Event du DOM est utilisé par défaut pour transmettre les messages.
-  on peut récuperer des données de l'évenement grace au champ datas de l'objet event
-  currentTarget et target permettent de savoir dans quel context l'évenement a été dispatché ( émit )
-
-  @description EN
+  @description  an online icon builder in javascript.It Helps designers create pixel art icons for the web , sprites or favicons
+  online.
+  @link mparaiso@online.fr
 */
-var App, Main, View,
+var Controller, DrawingTool, Main, View,
   __hasProp = Object.prototype.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; },
   __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
-
-if (typeof console === "undefined" || console === null) {
-  console = {
-    log: function() {}
-  };
-}
 
 Array.prototype.split = function(index) {
   var q;
@@ -34,15 +24,14 @@ Array.prototype.split = function(index) {
   }
 };
 
-App = {
-  Views: {},
-  Models: {},
-  Controllers: {},
-  Collections: {},
-  Utils: {},
-  Lib: {},
-  Ajax: {}
-};
+if (typeof App === "undefined" || App === null) {
+  App = {
+    Views: {},
+    Models: {},
+    Controllers: {},
+    Utils: {}
+  };
+}
 
 /* UTILITIES
 */
@@ -50,10 +39,7 @@ App = {
 App.Utils.DefaultColors = (function() {
 
   function DefaultColors() {
-    this.colors = [new App.Models.Color("Eraser", ""), new App.Models.Color("White", "#FFF"), new App.Models.Color("Gray2", "#DDD"), new App.Models.Color("Gray1", "#AAA"), new App.Models.Color("Gray2", "#777"), new App.Models.Color("Black", "#000"), new App.Models.Color("Red", "#900"), new App.Models.Color("Red", "#F00"), new App.Models.Color("Red", "#F99"), new App.Models.Color("Red", "#FDD"), new App.Models.Color("Green", "#090"), new App.Models.Color("Green", "#0F0"), new App.Models.Color("Green", "#9F9"), new App.Models.Color("Green", "#DFD"), new App.Models.Color("Blue", "#009"), new App.Models.Color("Blue", "#00F"), new App.Models.Color("Blue", "#99F"), new App.Models.Color("Blue", "#DDF"), new App.Models.Color("Yellow", "#FF0"), new App.Models.Color("Yellow", "#F90"), new App.Models.Color("Cyan", "#0FF"), new App.Models.Color("Cyan", "#099"), new App.Models.Color("Magenta", "#F0F"), new App.Models.Color("Magenta", "#909")];
-    this.colors.sort(function(a, b) {
-      return a.color < b.color;
-    });
+    this.colors = [new App.Models.Color("White", "#FFF"), new App.Models.Color("Gray2", "#DDD"), new App.Models.Color("Gray1", "#AAA"), new App.Models.Color("Gray2", "#777"), new App.Models.Color("Black", "#000"), new App.Models.Color("Red", "#900"), new App.Models.Color("Red", "#F00"), new App.Models.Color("Red", "#F99"), new App.Models.Color("Red", "#FDD"), new App.Models.Color("Green", "#090"), new App.Models.Color("Green", "#0F0"), new App.Models.Color("Green", "#9F9"), new App.Models.Color("Green", "#DFD"), new App.Models.Color("Blue", "#009"), new App.Models.Color("Blue", "#00F"), new App.Models.Color("Blue", "#99F"), new App.Models.Color("Blue", "#DDF"), new App.Models.Color("Yellow", "#FF0"), new App.Models.Color("Yellow", "#F90"), new App.Models.Color("Cyan", "#0FF"), new App.Models.Color("Cyan", "#099"), new App.Models.Color("Magenta", "#F0F"), new App.Models.Color("Magenta", "#909"), new App.Models.Color("Magenta", "#505")];
   }
 
   return DefaultColors;
@@ -77,9 +63,8 @@ App.Utils.EventDispatcher = (function() {
 
   function EventDispatcher(parent) {
     this.parent = parent;
+    this.listeners = [];
   }
-
-  EventDispatcher.prototype.listeners = [];
 
   EventDispatcher.prototype.addListener = function(eventName, listener) {
     return this.listeners.push({
@@ -89,20 +74,14 @@ App.Utils.EventDispatcher = (function() {
   };
 
   EventDispatcher.prototype.dispatch = function(event, datas) {
-    var i, _i, _len, _ref, _results;
+    var i, _i, _len, _ref;
     event.target = event.currentTarget = this.parent;
     event.datas = datas;
     _ref = this.listeners;
-    _results = [];
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       i = _ref[_i];
-      if (event.type === i.eventName) {
-        _results.push(i.listener(event));
-      } else {
-        _results.push(void 0);
-      }
+      if (event.type === i.eventName) i.listener(event);
     }
-    return _results;
   };
 
   EventDispatcher.prototype.removeListener = function(eventName, listener) {
@@ -134,6 +113,22 @@ App.Utils.DefaultMenu = (function() {
       action: "emptygrid",
       title: "Create a new blank grid"
     }, {
+      label: "16x16 grid",
+      action: "changegridsize",
+      title: 'Change grid size',
+      datas: {
+        rows: 16,
+        columns: 16
+      }
+    }, {
+      label: "32x32 grid",
+      action: "changegridsize",
+      title: 'Change grid size',
+      datas: {
+        rows: 32,
+        columns: 32
+      }
+    }, {
       label: "Export to png",
       action: "exporttopng",
       title: "Export image as png in a new window (not available in Internet explorer)",
@@ -149,6 +144,19 @@ App.Utils.DefaultMenu = (function() {
       action: "restorefromlocal",
       title: "Restore previously saved icon.",
       datas: {}
+    }, {
+      label: "Switch background color",
+      action: "switchBackground",
+      title: "Switch background from White to Black",
+      datas: [
+        {
+          backgroundColor: "#111",
+          color: "#EEE"
+        }, {
+          backgroundColor: "#EEE",
+          color: "#111"
+        }
+      ]
     }, {
       label: "thickbox test",
       action: "showthickbox",
@@ -169,17 +177,26 @@ App.Utils.Toolbox = (function() {
       label: "pen",
       src: "img//pen.png",
       action: "drawpoint",
-      title: "pen"
+      title: "a pen tool",
+      "class": "Pen"
     }, {
       label: "bucket",
       src: "img//bucket.png",
       action: "drawfill",
-      title: "bucket"
+      title: "a bucket tool",
+      "class": "Bucket"
     }, {
-      label: "rubber",
+      label: "line",
+      src: "img//line.png",
+      action: "drawline",
+      title: "A line drawing tool : press the mouse button , drag , and release to draw a line",
+      "class": "Line"
+    }, {
+      label: "eraser",
       src: "img//rubber.png",
       action: "erase",
-      title: "rubber"
+      title: "an eraser tool",
+      "class": "Eraser"
     }
   ];
 
@@ -228,14 +245,208 @@ App.Utils.Iterator = (function(_super) {
 
 })(Array);
 
+/* DRAWING TOOLS
+*/
+
+DrawingTool = (function() {
+
+  DrawingTool.prototype.eventDispatcher = new App.Utils.EventDispatcher(DrawingTool);
+
+  DrawingTool.prototype.supportMouseMove = false;
+
+  function DrawingTool(target) {
+    this.target = target;
+  }
+
+  DrawingTool.prototype.factor = 1;
+
+  DrawingTool.prototype.draw = function(ctx, point, colCible) {};
+
+  DrawingTool.prototype.isInCanvas = function(ctx, pixel) {
+    var result, _ref, _ref2;
+    result = ((0 <= (_ref = pixel.x) && _ref < ctx.rows)) && ((0 <= (_ref2 = pixel.y) && _ref2 < ctx.columns));
+    return result;
+  };
+
+  return DrawingTool;
+
+})();
+
+App.Utils.Pen = (function(_super) {
+
+  __extends(Pen, _super);
+
+  function Pen() {
+    Pen.__super__.constructor.apply(this, arguments);
+  }
+
+  Pen.prototype.draw = function(ctx, point, newColor) {
+    return ctx.fillCell({
+      row: point.x,
+      column: point.y,
+      color: {
+        value: newColor
+      },
+      factor: this.factor
+    });
+  };
+
+  Pen.prototype.supportMouseMove = true;
+
+  return Pen;
+
+})(DrawingTool);
+
+App.Utils.Eraser = (function(_super) {
+
+  __extends(Eraser, _super);
+
+  function Eraser() {
+    Eraser.__super__.constructor.apply(this, arguments);
+  }
+
+  Eraser.prototype.draw = function(ctx, point) {
+    return ctx.emptyCell({
+      row: point.x,
+      column: point.y
+    });
+  };
+
+  Eraser.prototype.supportMouseMove = true;
+
+  return Eraser;
+
+})(DrawingTool);
+
+App.Utils.Bucket = (function(_super) {
+
+  __extends(Bucket, _super);
+
+  function Bucket(eventListener) {
+    console.log(eventListener);
+  }
+
+  Bucket.prototype.MAXITERATION = 1000;
+
+  Bucket.prototype.factor = 1;
+
+  Bucket.prototype.draw = function(ctx, pixel, colRep, colCible) {
+    var P, currentpixel, max;
+    P = [];
+    max = this.MAXITERATION;
+    if (this.getColorAtPixel(ctx, pixel) !== colCible) return null;
+    P.push(pixel);
+    while (P.length > 0 && max >= 0) {
+      --max;
+      currentpixel = P.pop();
+      this.fillRect(ctx, currentpixel.x, currentpixel.y, colRep, this.factor);
+      if (this.isInCanvas(ctx, currentpixel)) {
+        if (this.getColorAtPixel(ctx, this.up(currentpixel)) === colCible) {
+          P.push(this.up(currentpixel));
+        }
+        if (this.getColorAtPixel(ctx, this.down(currentpixel)) === colCible) {
+          P.push(this.down(currentpixel));
+        }
+        if (this.getColorAtPixel(ctx, this.right(currentpixel)) === colCible) {
+          P.push(this.right(currentpixel));
+        }
+        if (this.getColorAtPixel(ctx, this.left(currentpixel)) === colCible) {
+          P.push(this.left(currentpixel));
+        }
+      }
+    }
+  };
+
+  Bucket.prototype.fillRect = function(ctx, x, y, _color, _factor) {
+    ctx.fillCell({
+      row: x,
+      column: y,
+      color: {
+        value: _color
+      },
+      factor: _factor
+    });
+  };
+
+  Bucket.prototype.down = function(pixel) {
+    return {
+      x: pixel.x,
+      y: pixel.y - this.factor
+    };
+  };
+
+  Bucket.prototype.up = function(pixel) {
+    return {
+      x: pixel.x,
+      y: pixel.y + this.factor
+    };
+  };
+
+  Bucket.prototype.right = function(pixel) {
+    return {
+      x: pixel.x + this.factor,
+      y: pixel.y
+    };
+  };
+
+  Bucket.prototype.left = function(pixel) {
+    return {
+      x: pixel.x - this.factor,
+      y: pixel.y
+    };
+  };
+
+  Bucket.prototype.getColorAtPixel = function(ctx, pixel) {
+    var result;
+    if (this.isInCanvas(ctx, pixel) && (ctx.grid[pixel.x][pixel.y] != null)) {
+      result = ctx.grid[pixel.x][pixel.y].color.value;
+    }
+    return result;
+  };
+
+  Bucket.prototype.rgbArrayToCssColorString = function(array) {
+    var result;
+    result = "rgb(" + array[0] + "," + array[1] + "," + array[2] + ")";
+    return result;
+  };
+
+  return Bucket;
+
+})(DrawingTool);
+
+App.Utils.Line = (function(_super) {
+
+  __extends(Line, _super);
+
+  function Line(target) {
+    this.target = target;
+    Line.__super__.constructor.call(this, this.targer);
+    this.eventDispatcher.addListener("begin", this.onbegin);
+    this.eventDispatcher.addListener("end", this.onend);
+  }
+
+  Line.prototype.onBegin = function(e) {
+    var _ref;
+    return _ref = e.datas, this.beginPoint = _ref.beginPoint, _ref;
+  };
+
+  Line.prototype.onEnd = function(e) {
+    this.endPoint = e.datas.endPoint;
+    return console.log(this);
+  };
+
+  return Line;
+
+})(DrawingTool);
+
 /* MODELS
 */
 
 App.Models.Color = (function() {
 
-  function Color(title, color, alpha) {
+  function Color(title, value, alpha) {
     this.title = title != null ? title : "Eraser";
-    this.color = color != null ? color : null;
+    this.value = value != null ? value : "";
     this.alpha = alpha != null ? alpha : 1;
   }
 
@@ -255,7 +466,7 @@ App.Models.Application = (function() {
     return this.eventDispatcher.dispatch(new App.Utils.Event("update"), this);
   };
 
-  Application.prototype.currentColor = new App.Models.Color("Black", "#000000", 1);
+  Application.prototype.currentColor = new App.Models.Color("Black", "rgb(0,0,0)", 1);
 
   Application.prototype.favIconGridModel = null;
 
@@ -265,9 +476,10 @@ App.Models.Application = (function() {
 
 App.Models.Cell = (function() {
 
-  function Cell() {
-    this.color = null;
-    this.alpha = 1;
+  function Cell(color, row, column) {
+    this.color = color != null ? color : new App.Models.Color("empty", "");
+    this.row = row;
+    this.column = column;
   }
 
   return Cell;
@@ -303,8 +515,12 @@ App.Models.Grid = (function() {
   };
 
   Grid.prototype.fillCell = function(params) {
-    this.grid[params.row][params.column].color = params.color.color;
+    this.grid[params.row][params.column].color.value = params.color.value;
     return this.grid[params.row][params.column].alpha = 1;
+  };
+
+  Grid.prototype.emptyCell = function(params) {
+    return this.grid[params.row][params.column].color.value = "";
   };
 
   Grid.prototype.emptyGrid = function() {
@@ -316,7 +532,7 @@ App.Models.Grid = (function() {
         var _ref2, _results2;
         _results2 = [];
         for (j = 0, _ref2 = this.columns; 0 <= _ref2 ? j < _ref2 : j > _ref2; 0 <= _ref2 ? j++ : j--) {
-          this.grid[i][j].color = "";
+          this.grid[i][j].color.value = "";
           _results2.push(this.grid[i][j].alpha = 1);
         }
         return _results2;
@@ -342,8 +558,9 @@ App.Models.Title = (function() {
 
 App.Models.ColorSelector = (function() {
 
-  function ColorSelector(colors) {
+  function ColorSelector(colors, currentColor) {
     this.colors = colors != null ? colors : new App.Utils.DefaultColors().colors;
+    this.currentColor = currentColor != null ? currentColor : new App.Models.Color("Black", "rgb(0,0,0)");
   }
 
   return ColorSelector;
@@ -367,7 +584,7 @@ App.Models.FactorSelector = (function() {
   function FactorSelector(targetId, factor, selectors) {
     this.targetId = targetId;
     this.factor = factor;
-    this.selectors = selectors != null ? selectors : [1, 2, 3, 4];
+    this.selectors = selectors != null ? selectors : [1, 2, 3, 4, 8];
   }
 
   return FactorSelector;
@@ -407,9 +624,7 @@ App.Models.Toolbox = (function() {
 
   function Toolbox(tools) {
     this.tools = tools;
-    this.currentTool = {
-      value: this.tools[0].label
-    };
+    this.currentTool = this.tools[0];
   }
 
   return Toolbox;
@@ -422,6 +637,8 @@ App.Models.Toolbox = (function() {
 View = (function() {
 
   function View() {}
+
+  View.prototype.eventDispatcher = new App.Utils.EventDispatcher(View);
 
   View.prototype.render = function() {
     var child, _base, _results;
@@ -440,9 +657,25 @@ App.Views.Cell = (function(_super) {
 
   __extends(Cell, _super);
 
-  function Cell() {
-    Cell.__super__.constructor.apply(this, arguments);
+  function Cell(model, targetId) {
+    this.model = model;
+    this.targetId = targetId;
   }
+
+  Cell.prototype.render = function() {
+    this.el = "<div name ='cell' ";
+    if (["", null].indexOf(this.model.color.value) >= 0) {
+      this.el += " class='emptyCell ' ";
+    } else {
+      this.el += " style='background-color:" + this.model.color.value + ";' ";
+    }
+    this.el += " data-row='" + this.model.row + "' data-column='" + this.model.column + "' ";
+    this.el += " ></div>";
+    if (typeof targetId !== "undefined" && targetId !== null) {
+      this.targetId.innerHTML = this.el;
+    }
+    return this;
+  };
 
   return Cell;
 
@@ -460,14 +693,13 @@ App.Views.Grid = (function(_super) {
     this.pen = pen != null ? pen : {};
     this.setPenColor = __bind(this.setPenColor, this);
     this.setDrawMode = __bind(this.setDrawMode, this);
-    this.drawMode = false;
     this.eventDispatcher = new App.Utils.EventDispatcher(this);
     this.eventDispatcher.addListener("drawmodechange", this.setDrawMode);
     this.divTargetId.classes = this.divTargetId.className;
   }
 
   Grid.prototype.render = function() {
-    var column, element, gridModel, row, _ref, _ref2,
+    var cell, column, element, gridModel, row, _ref, _ref2,
       _this = this;
     gridModel = this.model.grid;
     this.divTargetId.innerHTML = "";
@@ -475,14 +707,8 @@ App.Views.Grid = (function(_super) {
     this.el = "";
     for (row = 0, _ref = gridModel.rows; 0 <= _ref ? row < _ref : row > _ref; 0 <= _ref ? row++ : row--) {
       for (column = 0, _ref2 = gridModel.columns; 0 <= _ref2 ? column < _ref2 : column > _ref2; 0 <= _ref2 ? column++ : column--) {
-        element = " <div name='cell' ";
-        if (gridModel.grid[row][column].color !== null && gridModel.grid[row][column].color !== "") {
-          element += " style='background-color:" + gridModel.grid[row][column].color + "' ";
-        } else {
-          element += " class='" + this.emptyCellStyle + "' ";
-        }
-        element += " data-row='" + row + "' data-column='" + column + "' ";
-        element += " ></div> ";
+        cell = new App.Views.Cell(new App.Models.Cell(gridModel.grid[row][column].color, row, column));
+        element = cell.render().el;
         this.el += element;
       }
     }
@@ -492,10 +718,10 @@ App.Views.Grid = (function(_super) {
       _this.eventDispatcher.dispatch(new App.Utils.Event("renderpreview"), {});
       return _this.eventDispatcher.dispatch(new App.Utils.Event("pushinhistory"), {});
     };
-    this.divTargetId.onmousemove = this.divTargetId.onmousedown = function(e) {
-      if (e.type === "mousedown") _this.drawMode = true;
-      if (e.target.getAttribute("name") === "cell" && _this.drawMode === true) {
+    this.divTargetId.onmousedown = function(e) {
+      if (e.target.getAttribute("name") === "cell") {
         _this.eventDispatcher.dispatch(new App.Utils.Event("clickcell"), {
+          el: e.currentTarget,
           element: e.target,
           tool: "pen",
           width: 2,
@@ -511,13 +737,13 @@ App.Views.Grid = (function(_super) {
 
   Grid.prototype.fillCell = function(e) {
     var color;
-    color = e.datas.color.color;
+    color = e.color.value;
     if (["", void 0].indexOf(color) < 0) {
-      e.datas.element.style.backgroundColor = color;
-      return e.datas.element.className = "";
+      e.element.style.backgroundColor = color;
+      return e.element.className = "";
     } else {
-      e.datas.element.style.backgroundColor = null;
-      return e.datas.element.className += " " + this.emptyCellStyle;
+      e.element.style.backgroundColor = null;
+      return e.element.className += " " + this.emptyCellStyle;
     }
   };
 
@@ -552,37 +778,7 @@ App.Views.Application = (function(_super) {
     return this.children.splice(this.children.indexOf(view), 1);
   };
 
-  /*
-    render:->
-      for child in @children
-        child.render?()
-  */
-
   return Application;
-
-})(View);
-
-App.Views.Color = (function(_super) {
-
-  __extends(Color, _super);
-
-  function Color(model) {
-    this.model = model != null ? model : new App.Models.Color();
-  }
-
-  Color.prototype.render = function() {
-    this.el = document.createElement("div");
-    this.el.setAttribute("title", this.model.title);
-    this.el.className += " color ";
-    if (this.model.color !== null && this.model.color !== "") {
-      this.el.style.backgroundColor = this.model.color;
-    } else {
-      this.el.className += " emptyCell ";
-    }
-    return this;
-  };
-
-  return Color;
 
 })(View);
 
@@ -626,9 +822,9 @@ App.Views.ColorSelector = (function(_super) {
 
   __extends(ColorSelector, _super);
 
-  function ColorSelector(el, model) {
-    this.el = el;
+  function ColorSelector(model, targetId) {
     this.model = model;
+    this.targetId = targetId;
     if (!this.model instanceof App.Models.ColorSelector) {
       throw new Error("model must be an instance of ColorSelector");
     }
@@ -637,27 +833,26 @@ App.Views.ColorSelector = (function(_super) {
   }
 
   ColorSelector.prototype.render = function() {
-    var i, _ref,
+    var currentColor, i, _ref,
       _this = this;
     this.children = [];
-    this.currentColor = new App.Views.Color(App.Models.Application.prototype.currentColor);
-    this.el.innerHTML = "";
-    this.h4Element = document.createElement("h4");
-    this.h4Element.innerHTML = "Current Color";
-    this.el.appendChild(this.h4Element);
-    this.el.appendChild(this.currentColor.render().el);
-    this.el.innerHTML += "<h4>Color swatch</h4>";
+    currentColor = new App.Views.Cell(new App.Models.Cell(new App.Models.Color("", this.model.currentColor.value)));
+    this.el = "";
+    this.el += "<h4>Current Color</h4>";
+    this.el += currentColor.render().el;
+    this.el += "<h4>Color swatch</h4>";
     for (i = 0, _ref = this.model.colors.length; 0 <= _ref ? i < _ref : i > _ref; 0 <= _ref ? i++ : i--) {
-      this.children[i] = new App.Views.Color(this.model.colors[i]);
-      this.el.appendChild(this.children[i].render().el);
-      this.children[i].el.onclick = function(e) {
-        _this.eventDispatcher.dispatch(new App.Utils.Event("colorchange"), {
-          "color": e.target.style.backgroundColor,
-          "title": e.target.title
-        });
-        return _this.render();
-      };
+      this.children[i] = new App.Views.Cell(new App.Models.Cell(this.model.colors[i]));
+      this.el += this.children[i].render().el;
     }
+    this.targetId.innerHTML = this.el;
+    this.targetId.onclick = function(e) {
+      if (e.target.getAttribute("name") !== "cell") return;
+      return _this.eventDispatcher.dispatch(new App.Utils.Event("colorchange"), {
+        "color": e.target.style.backgroundColor,
+        "title": e.target.title
+      });
+    };
     return this;
   };
 
@@ -688,11 +883,11 @@ App.Views.CanvasPreview = (function(_super) {
       for (j = 0, _ref2 = gridModel.columns; 0 <= _ref2 ? j < _ref2 : j > _ref2; 0 <= _ref2 ? j++ : j--) {
         x = j * this.model.factor;
         y = i * this.model.factor;
-        if (gridModel.grid[i][j].color === null || gridModel.grid[i][j].color === "") {
+        if (gridModel.grid[i][j].color.value === null || gridModel.grid[i][j].color.value === "") {
           ctx.fillStyle = "#FFFFFF";
           ctx.globalAlpha = 0;
         } else {
-          ctx.fillStyle = gridModel.grid[i][j].color;
+          ctx.fillStyle = gridModel.grid[i][j].color.value;
           ctx.globalAlpha = gridModel.grid[i][j].alpha;
         }
         ctx.fillRect(x, y, this.model.factor, this.model.factor);
@@ -794,9 +989,10 @@ App.Views.Toolbox = (function(_super) {
     _ref = this.model.tools;
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       tool = _ref[_i];
-      this.el += "<img title='" + tool.title + "' name='" + tool.label + "' " + (tool.title === this.model.currentTool.value ? "class='selected'" : "") + " src='" + tool.src + "'/>";
+      this.el += "<span data-class=" + tool["class"] + " title='" + tool.title + "' name='" + tool.label + "' " + (tool.label === this.model.currentTool.label ? "class='selected'" : "") + " style='background:url(" + tool.src + ")'></span>";
     }
-    this.el += "<br/><h5>" + this.model.currentTool.value + "</h5>";
+    this.el += "<br/><h5>" + this.model.currentTool.title + "</h5>";
+    this.targetId.innerHTML = this.el;
     this.targetId.onclick = function(e) {
       var name, tagName;
       name = e.target.getAttribute("name");
@@ -806,7 +1002,6 @@ App.Views.Toolbox = (function(_super) {
       }
       return false;
     };
-    this.targetId.innerHTML = this.el;
     return this;
   };
 
@@ -817,7 +1012,17 @@ App.Views.Toolbox = (function(_super) {
 /* CONTROLLERS
 */
 
-App.Controllers.Application = (function() {
+Controller = (function() {
+
+  function Controller() {}
+
+  return Controller;
+
+})();
+
+App.Controllers.Application = (function(_super) {
+
+  __extends(Application, _super);
 
   function Application(model) {
     this.model = model;
@@ -826,7 +1031,7 @@ App.Controllers.Application = (function() {
 
   return Application;
 
-})();
+})(Controller);
 
 /* MAIN
 */
@@ -834,6 +1039,7 @@ App.Controllers.Application = (function() {
 Main = (function() {
 
   function Main() {
+    this.switchBackground = __bind(this.switchBackground, this);
     this.showThickbox = __bind(this.showThickbox, this);
     this.selecFactor = __bind(this.selecFactor, this);
     this.updateViews = __bind(this.updateViews, this);
@@ -850,9 +1056,8 @@ Main = (function() {
     this.undo = __bind(this.undo, this);
     this.pushInHistory = __bind(this.pushInHistory, this);
     this.changeTool = __bind(this.changeTool, this);
-    var $app, $canvasPreview, $colorSelector, $factorSelector, $menu, $target, $title, $toolbox, defaultColor, title;
+    var $app, $canvasPreview, $colorSelector, $factorSelector, $menu, $target, $title, $toolbox, title;
     console.log("favicon builder at " + (new Date()));
-    "use strict";
     this.version = 0.1;
     this.thickbox = document.getElementById("thickbox");
     $app = document.getElementById("app");
@@ -864,13 +1069,15 @@ Main = (function() {
     $title = document.getElementById("title");
     $toolbox = document.getElementById("toolSelector");
     title = "Fav icon builder";
-    defaultColor = "#000000";
     /* MODELS
     */
     this.model = new App.Models.Application();
+    this.model.defaultColor = {
+      value: "rgb(0,0,0)"
+    };
     this.model.history = new App.Models.History();
     this.model.toolbox = new App.Models.Toolbox(App.Utils.Toolbox.prototype.tools);
-    this.model.colorSelector = new App.Models.ColorSelector();
+    this.model.colorSelector = new App.Models.ColorSelector(App.Utils.DefaultColors.prototype.colors, this.model.defaultColor);
     this.model.grid = new App.Models.Grid(16, 16, 0.1, "new grid");
     this.model.title = new App.Models.Title("new grid", $title);
     this.model.canvasPreview = new App.Models.CanvasPreview($canvasPreview, this.model);
@@ -883,7 +1090,7 @@ Main = (function() {
     */
     this.view = new App.Views.Application(this.applicationController, $app);
     this.view.toolbox = new App.Views.Toolbox(this.model.toolbox, $toolbox);
-    this.view.colorSelector = new App.Views.ColorSelector($colorSelector, this.model.colorSelector);
+    this.view.colorSelector = new App.Views.ColorSelector(this.model.colorSelector, $colorSelector);
     this.view.colorSelector.eventDispatcher.addListener("colorchange", this.oncolorchange);
     this.view.canvasPreview = new App.Views.CanvasPreview(this.model.canvasPreview);
     this.view.factorSelector = new App.Views.FactorSelector(this.model.factorSelector);
@@ -891,7 +1098,7 @@ Main = (function() {
     this.view.title = new App.Views.Title(this.model.title);
     this.view.grid.setPenColor(this.model.currentColor);
     this.view.menu = new App.Views.Menu(this.model.menu);
-    this.view.render();
+    this.updateViews();
     /* EVENTS
     */
     this.view.toolbox.eventDispatcher.addListener("changetool", this.changeTool);
@@ -903,9 +1110,10 @@ Main = (function() {
     this.view.menu.eventDispatcher.addListener("showthickbox", this.showThickbox);
     this.view.menu.eventDispatcher.addListener("undo", this.undo);
     this.view.menu.eventDispatcher.addListener("redo", this.redo);
+    this.view.menu.eventDispatcher.addListener("switchBackground", this.switchBackground);
     this.view.factorSelector.eventDispatcher.addListener("selectfactor", this.selecFactor);
     this.view.grid.eventDispatcher.addListener("renderpreview", this.renderPreview);
-    this.view.grid.eventDispatcher.addListener("updateviews", this.updateViews);
+    this.view.grid.eventDispatcher.addListener("updateViews", this.updateViews);
     this.view.grid.eventDispatcher.addListener("clickcell", this.clickcell);
     this.view.grid.eventDispatcher.addListener("pushinhistory", this.pushInHistory);
     this.view.title.eventDispatcher.addListener("titlechanged", this.titleChange);
@@ -913,8 +1121,14 @@ Main = (function() {
   }
 
   Main.prototype.changeTool = function(e) {
-    this.model.toolbox.currentTool.value = e.datas;
-    return this.view.render();
+    var label, tool,
+      _this = this;
+    label = e.datas;
+    tool = this.model.toolbox.tools.filter(function(o) {
+      return o.label === label;
+    });
+    this.model.toolbox.currentTool = tool[0];
+    return this.updateViews();
   };
 
   Main.prototype.pushInHistory = function(e) {
@@ -940,8 +1154,57 @@ Main = (function() {
   };
 
   Main.prototype.clickcell = function(e) {
-    this.model.grid.fillCell(e.datas);
-    return this.view.grid.fillCell(e);
+    var tool,
+      _this = this;
+    this.isDrawing = true;
+    tool = new App.Utils[this.model.toolbox.currentTool["class"]](e.target);
+    tool.context = this.model.grid;
+    tool.currentColor = e.datas.element.style.backgroundColor;
+    tool.newColor = this.model.colorSelector.currentColor.value;
+    tool.point = {
+      x: parseInt(e.datas.row, 10),
+      y: parseInt(e.datas.column, 10)
+    };
+    tool.draw(tool.context, tool.point, tool.newColor, tool.currentColor);
+    tool.eventDispatcher.dispatch(new App.Utils.Event("begin"), {
+      beginPoint: tool.point
+    });
+    e.datas.el.onmouseup = function(e) {
+      var point;
+      point = {
+        x: parseInt(e.target.getAttibute("data-row")),
+        y: parseInt(e.target.getAttribute("data-column"))
+      };
+      tool.eventDispatcher.dispatch(new App.Utils.Event("end"), {
+        endPoint: point
+      });
+      _this.isDrawing = false;
+      tool = null;
+      _this.pushInHistory();
+      _this.updateViews();
+      return false;
+    };
+    if (tool.supportMouseMove === true) {
+      return e.datas.el.onmousemove = function(e) {
+        var color;
+        console.log("mouse down");
+        console.log(e);
+        if (e.target.getAttribute('name') === "cell" && _this.isDrawing === true) {
+          tool.draw(tool.context, {
+            x: parseInt(e.target.getAttribute("data-row")),
+            y: parseInt(e.target.getAttribute("data-column"))
+          }, tool.newColor, tool.currentColor);
+          color = {
+            value: tool.newColor
+          };
+          _this.view.grid.fillCell({
+            element: e.target,
+            color: color
+          });
+        }
+        return false;
+      };
+    }
   };
 
   Main.prototype.titleChange = function(e) {
@@ -954,8 +1217,8 @@ Main = (function() {
   };
 
   Main.prototype.oncolorchange = function(e) {
-    this.model.currentColor.color = e.datas.color;
-    return this.model.currentColor.title = e.datas.title;
+    this.model.colorSelector.currentColor.value = e.datas.color;
+    return this.updateViews();
   };
 
   Main.prototype.exportCanvas = function(e) {
@@ -1017,12 +1280,17 @@ Main = (function() {
     };
   };
 
+  Main.prototype.switchBackground = function(e) {
+    if (this.defaultclass == null) this.defaultclass = document.body.className;
+    return document.body.className = document.body.className === this.defaultclass ? this.defaultclass + " black" : this.defaultclass;
+  };
+
   return Main;
 
 })();
 
 if (typeof window !== "undefined" && window !== null) {
   window.onload = function() {
-    return typeof window !== "undefined" && window !== null ? window.main = new Main() : void 0;
+    return window.main = new Main();
   };
 }
