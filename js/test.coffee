@@ -84,25 +84,3 @@ main=->
 
 window.onload=->
   main()
-
-###
-#console.log("bucketFill",ctx,pixel.x,pixel.y,colcible,colrep)
-MAXSTACK+=1
-#if MAXSTACK < 50000 then log MAXSTACK
-if !isInCanvas(ctx,pixel) then return null
-#if pixels.indexOf(pixel)!=-1 then return null
-if getColorAtPixel(ctx,pixel) == colcible
-  ctx.fillStyle = colrep
-  ctx.fillRect(pixel.x,pixel.y,1,1)
-  pixels.push(pixel)
-  left = {x:pixel.x,y:pixel.y-1}
-  right = {x:pixel.x,y:pixel.y+1}
-  up = {x:pixel.x+1,y:pixel.y}
-  down = {x:pixel.x-1,y:pixel.y}
-  bucketFill(ctx,left,colcible,colrep) unless (!isInCanvas(ctx,left) or getColorAtPixel(ctx,left)!=colcible)
-  bucketFill(ctx,right,colcible,colrep) unless (!isInCanvas(ctx,right) or getColorAtPixel(ctx,right)!=colcible)
-  bucketFill(ctx,up,colcible,colrep) unless (!isInCanvas(ctx,up) or getColorAtPixel(ctx,up)!=colcible)
-  bucketFill(ctx,down,colcible,colrep) unless( !isInCanvas(clx,down) or getColorAtPixel(ctx,up)!=colCible)
-return
-###
-

@@ -40,7 +40,7 @@ if (typeof App === "undefined" || App === null) {
 App.Utils.DefaultColors = (function() {
 
   function DefaultColors() {
-    this.colors = [new App.Models.Color("White", "#FFF"), new App.Models.Color("Gray2", "#DDD"), new App.Models.Color("Gray1", "#AAA"), new App.Models.Color("Gray2", "#777"), new App.Models.Color("Black", "#000"), new App.Models.Color("Red", "#900"), new App.Models.Color("Red", "#F00"), new App.Models.Color("Red", "#F99"), new App.Models.Color("Red", "#FDD"), new App.Models.Color("Green", "#090"), new App.Models.Color("Green", "#0F0"), new App.Models.Color("Green", "#9F9"), new App.Models.Color("Green", "#DFD"), new App.Models.Color("Blue", "#009"), new App.Models.Color("Blue", "#00F"), new App.Models.Color("Blue", "#99F"), new App.Models.Color("Blue", "#DDF"), new App.Models.Color("Yellow", "#FF0"), new App.Models.Color("Yellow", "#F90"), new App.Models.Color("Cyan", "#0FF"), new App.Models.Color("Cyan", "#099"), new App.Models.Color("Magenta", "#F0F"), new App.Models.Color("Magenta", "#909")];
+    this.colors = [new App.Models.Color("White", "#FFF"), new App.Models.Color("Gray2", "#DDD"), new App.Models.Color("Gray1", "#AAA"), new App.Models.Color("Gray2", "#777"), new App.Models.Color("Black", "#000"), new App.Models.Color("Red", "#900"), new App.Models.Color("Red", "#F00"), new App.Models.Color("Red", "#F99"), new App.Models.Color("Red", "#FDD"), new App.Models.Color("Green", "#090"), new App.Models.Color("Green", "#0F0"), new App.Models.Color("Green", "#9F9"), new App.Models.Color("Green", "#DFD"), new App.Models.Color("Blue", "#009"), new App.Models.Color("Blue", "#00F"), new App.Models.Color("Blue", "#99F"), new App.Models.Color("Blue", "#DDF"), new App.Models.Color("Yellow", "#FF0"), new App.Models.Color("Yellow", "#F90"), new App.Models.Color("Cyan", "#0FF"), new App.Models.Color("Cyan", "#099"), new App.Models.Color("Magenta", "#F0F"), new App.Models.Color("Magenta", "#909"), new App.Models.Color("Magenta", "#505")];
   }
 
   return DefaultColors;
@@ -187,6 +187,12 @@ App.Utils.Toolbox = (function() {
       title: "a bucket tool",
       "class": "Bucket"
     }, {
+      label: "line",
+      src: "img//line.png",
+      action: "drawline",
+      title: "A line drawing tool : press the mouse button , drag , and release to draw a line",
+      "class": "Line"
+    }, {
       label: "eraser",
       src: "img//rubber.png",
       action: "erase",
@@ -244,6 +250,8 @@ App.Utils.Iterator = (function(_super) {
 */
 
 DrawingTool = (function() {
+
+  DrawingTool.prototype.eventDispatcher = new App.Utils.EventDispatcher(DrawingTool);
 
   DrawingTool.prototype.supportMouseMove = false;
 
@@ -404,6 +412,31 @@ App.Utils.Bucket = (function(_super) {
   };
 
   return Bucket;
+
+})(DrawingTool);
+
+App.Utils.Line = (function(_super) {
+
+  __extends(Line, _super);
+
+  function Line(target) {
+    this.target = target;
+    Line.__super__.constructor.call(this, this.targer);
+    this.eventDispatcher.addListener("begin", this.onbegin);
+  }
+
+  Line.prototype.onbegin = function(e) {
+    var _ref;
+    this.eventDispatcher.removeListener("begin", this.onbegin);
+    this.eventDispatcher.addListener("end", this.onend);
+    return _ref = e.datas, this.beginPoint = _ref.beginPoint, this.endPoint = _ref.endPoint, this.lineColor = _ref.lineColor, _ref;
+  };
+
+  Line.prototype.onend = function(e) {
+    return this.eventDispatcher.removeListener("end", this.onend);
+  };
+
+  return Line;
 
 })(DrawingTool);
 
@@ -957,7 +990,7 @@ App.Views.Toolbox = (function(_super) {
     _ref = this.model.tools;
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       tool = _ref[_i];
-      this.el += "<img data-class=" + tool["class"] + " title='" + tool.title + "' name='" + tool.label + "' " + (tool.label === this.model.currentTool.label ? "class='selected'" : "") + " src='" + tool.src + "'/>";
+      this.el += "<span data-class=" + tool["class"] + " title='" + tool.title + "' name='" + tool.label + "' " + (tool.label === this.model.currentTool.label ? "class='selected'" : "") + " style='background:url(" + tool.src + ")'></span>";
     }
     this.el += "<br/><h5>" + this.model.currentTool.title + "</h5>";
     this.targetId.innerHTML = this.el;

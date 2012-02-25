@@ -92,7 +92,7 @@ canvas{
   width:750px;
 }
 #colorSelector,#left{
-  width: 100px;
+  width: 152px;
   display: inline-block;
 }
 #colorSelector .color{
@@ -129,23 +129,29 @@ div[name=cell]:hover{
   background:url("/lib/img/faviconbuilder/emptycell.gif");
 }
 #toolSelector{
-  height:50px;
 }
-#toolSelector img{
+#toolSelector span{
   border:2px solid #666;
   width:32px;
+  height:32px;
   margin-right:6px;
+  display:inline-block;
 }
-#toolSelector img:hover{
+#toolSelector span:hover{
   border:2px dashed #666;
   cursor: pointer;
 }
-#toolSelector img.selected{
+#toolSelector span.selected{
   border:2px dashed #666;
-  background: #CCC;
+  background-color:rgb(0,100,100);
 }
-
+#toolSelector h5{
+  width: 152px;
+  height: auto;
+  display:inline-block;
+  text-align: justify;
+}
 .black{
-background: #111;
-color:#EEE;
+  background: #111;
+  color:#EEE;
 }

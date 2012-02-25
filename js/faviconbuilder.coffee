@@ -30,32 +30,32 @@ App ?={
 ### UTILITIES ###
 class App.Utils.DefaultColors
   constructor:->
-    @colors =
-      [
-        new App.Models.Color("White","#FFF")
-        new App.Models.Color("Gray2","#DDD")
-        new App.Models.Color("Gray1","#AAA")
-        new App.Models.Color("Gray2","#777")
-        new App.Models.Color("Black","#000")
-        new App.Models.Color("Red","#900")
-        new App.Models.Color("Red","#F00")
-        new App.Models.Color("Red","#F99")
-        new App.Models.Color("Red","#FDD")
-        new App.Models.Color("Green","#090")
-        new App.Models.Color("Green","#0F0")
-        new App.Models.Color("Green","#9F9")
-        new App.Models.Color("Green","#DFD")
-        new App.Models.Color("Blue","#009")
-        new App.Models.Color("Blue","#00F")
-        new App.Models.Color("Blue","#99F")
-        new App.Models.Color("Blue","#DDF")
-        new App.Models.Color("Yellow","#FF0")
-        new App.Models.Color("Yellow","#F90")
-        new App.Models.Color("Cyan","#0FF")
-        new App.Models.Color("Cyan","#099")
-        new App.Models.Color("Magenta","#F0F")
-        new App.Models.Color("Magenta","#909")
-      ]
+    @colors =[
+      new App.Models.Color("White","#FFF")
+      new App.Models.Color("Gray2","#DDD")
+      new App.Models.Color("Gray1","#AAA")
+      new App.Models.Color("Gray2","#777")
+      new App.Models.Color("Black","#000")
+      new App.Models.Color("Red","#900")
+      new App.Models.Color("Red","#F00")
+      new App.Models.Color("Red","#F99")
+      new App.Models.Color("Red","#FDD")
+      new App.Models.Color("Green","#090")
+      new App.Models.Color("Green","#0F0")
+      new App.Models.Color("Green","#9F9")
+      new App.Models.Color("Green","#DFD")
+      new App.Models.Color("Blue","#009")
+      new App.Models.Color("Blue","#00F")
+      new App.Models.Color("Blue","#99F")
+      new App.Models.Color("Blue","#DDF")
+      new App.Models.Color("Yellow","#FF0")
+      new App.Models.Color("Yellow","#F90")
+      new App.Models.Color("Cyan","#0FF")
+      new App.Models.Color("Cyan","#099")
+      new App.Models.Color("Magenta","#F0F")
+      new App.Models.Color("Magenta","#909")
+      new App.Models.Color("Magenta","#505")
+    ]
 
 class App.Utils.Event
   constructor:(@type)->
@@ -95,6 +95,7 @@ class App.Utils.Toolbox
   tools:[
     {label:"pen",src:"img//pen.png",action:"drawpoint",title:"a pen tool",class:"Pen"}
     {label:"bucket",src:"img//bucket.png",action:"drawfill",title:"a bucket tool",class:"Bucket"}
+    {label:"line",src:"img//line.png",action:"drawline",title:"A line drawing tool : press the mouse button , drag , and release to draw a line",class:"Line"}
     {label:"eraser",src:"img//rubber.png",action:"erase",title:"an eraser tool",class:"Eraser"}
   ]
 
@@ -119,6 +120,7 @@ class App.Utils.Iterator extends Array
 
 ### DRAWING TOOLS ###
 class DrawingTool
+  eventDispatcher:new App.Utils.EventDispatcher(@)
   supportMouseMove:false
   constructor:(@target)->
   factor:1
@@ -179,6 +181,17 @@ class App.Utils.Bucket extends DrawingTool
   rgbArrayToCssColorString:(array)->
     result = "rgb(#{array[0]},#{array[1]},#{array[2]})"
     return result
+
+class App.Utils.Line extends DrawingTool
+  constructor:(@target)->
+    super(@targer)
+    @eventDispatcher.addListener("begin",@onbegin)
+  onbegin:(e)->
+    @eventDispatcher.removeListener("begin",@onbegin)
+    @eventDispatcher.addListener("end",@onend)
+    {@beginPoint,@endPoint,@lineColor} = e.datas
+  onend:(e)->
+    @eventDispatcher.removeListener("end",@onend)
 
 #
 
@@ -436,7 +449,7 @@ class App.Views.Toolbox extends View
   render:->
     @el = ""
     for tool in @model.tools
-      @el += "<img data-class=#{tool.class} title='#{tool.title}' name='#{tool.label}' #{if tool.label == @model.currentTool.label then "class='selected'" else "" } src='#{tool.src}'/>"
+      @el += "<span data-class=#{tool.class} title='#{tool.title}' name='#{tool.label}' #{if tool.label == @model.currentTool.label then "class='selected'" else "" } style='background:url(#{tool.src})'></span>"
     @el+="<br/><h5>#{@model.currentTool.title}</h5>"
     @targetId.innerHTML = @el
     @targetId.onclick =(e)=>
