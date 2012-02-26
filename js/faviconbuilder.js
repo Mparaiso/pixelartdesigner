@@ -1,3 +1,4 @@
+﻿;
 /*
   Icon builder
   copyright 2010 Marc Paraiso
@@ -80,7 +81,7 @@ App.Utils.EventDispatcher = (function() {
     _ref = this.listeners;
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       i = _ref[_i];
-      if (event.type === i.eventName) i.listener(event);
+      if (event.type === i.eventName) i.listener.call(this.parent, event);
     }
   };
 
@@ -421,8 +422,9 @@ App.Utils.Line = (function(_super) {
   function Line(target) {
     this.target = target;
     Line.__super__.constructor.call(this, this.targer);
-    this.eventDispatcher.addListener("begin", this.onbegin);
-    this.eventDispatcher.addListener("end", this.onend);
+    this.eventDispatcher = new App.Utils.EventDispatcher(this);
+    this.eventDispatcher.addListener("begin", this.onBegin);
+    this.eventDispatcher.addListener("end", this.onEnd);
   }
 
   Line.prototype.onBegin = function(e) {
@@ -431,8 +433,34 @@ App.Utils.Line = (function(_super) {
   };
 
   Line.prototype.onEnd = function(e) {
+    var f, x, _ref, _ref2, _results,
+      _this = this;
     this.endPoint = e.datas.endPoint;
-    return console.log(this);
+    this.coefficientDirecteur = (this.endPoint.y - this.beginPoint.y) / (this.endPoint.x - this.beginPoint.x);
+    this.p = this.beginPoint.y - this.coefficientDirecteur * this.beginPoint.x;
+    f = function(x) {
+      return Math.floor(_this.coefficientDirecteur * x + _this.p);
+    };
+    console.dir(this);
+    _results = [];
+    for (x = _ref = this.beginPoint.x, _ref2 = this.endPoint.x; _ref <= _ref2 ? x <= _ref2 : x >= _ref2; _ref <= _ref2 ? x++ : x--) {
+      _results.push(this.draw(this.context, {
+        x: x,
+        y: f(x),
+        newColor: this.newColor
+      }));
+    }
+    return _results;
+  };
+
+  Line.prototype.draw = function(ctx, point, newColor) {
+    ctx.fillCell({
+      row: point.x,
+      column: point.y,
+      color: {
+        value: this.newColor
+      }
+    });
   };
 
   return Line;
@@ -1172,8 +1200,8 @@ Main = (function() {
     e.datas.el.onmouseup = function(e) {
       var point;
       point = {
-        x: parseInt(e.target.getAttibute("data-row")),
-        y: parseInt(e.target.getAttribute("data-column"))
+        x: e.target.getAttribute("data-row"),
+        y: e.target.getAttribute("data-column")
       };
       tool.eventDispatcher.dispatch(new App.Utils.Event("end"), {
         endPoint: point
@@ -1187,8 +1215,6 @@ Main = (function() {
     if (tool.supportMouseMove === true) {
       return e.datas.el.onmousemove = function(e) {
         var color;
-        console.log("mouse down");
-        console.log(e);
         if (e.target.getAttribute('name') === "cell" && _this.isDrawing === true) {
           tool.draw(tool.context, {
             x: parseInt(e.target.getAttribute("data-row")),

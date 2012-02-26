@@ -1,4 +1,4 @@
-
+﻿
 ###
   Icon builder
   copyright 2010 Marc Paraiso
@@ -13,8 +13,6 @@
   @link mparaiso@online.fr
 ###
 
-#
-
 Array.prototype.split = (index)->
   if index < this.length
     q = this.length-index
@@ -28,6 +26,7 @@ App ?={
 }
 
 ### UTILITIES ###
+
 class App.Utils.DefaultColors
   constructor:->
     @colors =[
@@ -72,7 +71,7 @@ class App.Utils.EventDispatcher
     event.target = event.currentTarget =  @parent
     event.datas = datas
     for i in this.listeners
-      i.listener(event) unless event.type != i.eventName
+      i.listener.call(this.parent,event) unless event.type != i.eventName
     return
   removeListener : (eventName,listener)->
     this.listeners.splice(this.listeners.indexOf({"eventName":eventName,"listener":listener}),1)
@@ -119,8 +118,9 @@ class App.Utils.Iterator extends Array
       false
 
 ### DRAWING TOOLS ###
+
 class DrawingTool
-  eventDispatcher:new App.Utils.EventDispatcher(@)
+  eventDispatcher:new App.Utils.EventDispatcher(this)
   supportMouseMove:false
   constructor:(@target)->
   factor:1
@@ -185,13 +185,22 @@ class App.Utils.Bucket extends DrawingTool
 class App.Utils.Line extends DrawingTool
   constructor:(@target)->
     super(@targer)
-    @eventDispatcher.addListener("begin",@onbegin)
-    @eventDispatcher.addListener("end",@onend)
+    @eventDispatcher =  new App.Utils.EventDispatcher(this)
+    @eventDispatcher.addListener("begin",@onBegin)
+    @eventDispatcher.addListener("end",@onEnd)
   onBegin:(e)->
     {@beginPoint} = e.datas
   onEnd:(e)->
     {@endPoint} = e.datas
-    console.log @
+    @coefficientDirecteur = (@endPoint.y - @beginPoint.y) / (@endPoint.x-@beginPoint.x)
+    @p = @beginPoint.y - @coefficientDirecteur * @beginPoint.x
+    f=(x)=>Math.floor(@coefficientDirecteur*x+@p)
+    console.dir @
+    for x in [@beginPoint.x..@endPoint.x]
+      @draw(@context,{x:x,y:f(x),@newColor})
+  draw:(ctx,point,newColor)->
+    ctx.fillCell({row:point.x,column:point.y,color:{value:@newColor}})
+    return
 
 ### MODELS ###
 
@@ -259,6 +268,7 @@ class App.Models.Toolbox
     @currentTool = @tools[0]
 
 ### VIEWS ###
+
 class View
   eventDispatcher:new App.Utils.EventDispatcher(@)
   render:->
@@ -458,12 +468,14 @@ class App.Views.Toolbox extends View
     return this
 
 ### CONTROLLERS ###
+
 class Controller
 class App.Controllers.Application extends Controller
   constructor:(@model)->
     @view = null
 
 ### MAIN ###
+
 class Main
   constructor:->
     console.log "favicon builder at #{new Date()}"
@@ -550,9 +562,9 @@ class Main
     tool.newColor = @model.colorSelector.currentColor.value
     tool.point = {x:parseInt(e.datas.row,10),y:parseInt(e.datas.column,10)}
     tool.draw(tool.context,tool.point,tool.newColor,tool.currentColor)
-    tool.eventDispatcher.dispatch(new App.Utils.Event("begin"),{beginPoint:tool.point})
+    tool.eventDispatcher.dispatch(new App.Utils.Event("begin"),{beginPoint:tool.point}) # begin drawing
     e.datas.el.onmouseup=(e)=>
-      point = { x:parseInt(e.target.getAttibute("data-row")),y:parseInt(e.target.getAttribute("data-column")) }
+      point = {x:e.target.getAttribute("data-row"),y:e.target.getAttribute("data-column")}
       tool.eventDispatcher.dispatch(new App.Utils.Event("end"),{endPoint:point})
       @isDrawing = false
       tool = null
@@ -561,8 +573,6 @@ class Main
       return false
     if tool.supportMouseMove == true
       e.datas.el.onmousemove=(e)=>
-        console.log "mouse down"
-        console.log(e)
         if e.target.getAttribute('name')=="cell" and @isDrawing == true
           tool.draw(tool.context,{x:parseInt(e.target.getAttribute("data-row")),y:parseInt(e.target.getAttribute("data-column"))},tool.newColor,tool.currentColor)
           color  = {value:tool.newColor}

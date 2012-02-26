@@ -3,9 +3,9 @@
 @import url('messagebox.css'); /* message box */
 @import url('unselectable.css'); /*unselectable*/
 h1,h2,h3,h4,h5,h6,div,p,img{
-border:none;
-margin:0;
-padding:0;
+  border:none;
+  margin:0;
+  padding:0;
 }
 body{
   font-family:Helvetica,'Arial Narrow', sans-serif;
@@ -18,7 +18,7 @@ h1,h2,h3,h4{
   margin-bottom: 5px;
 }
 h5,h6{
-margin-top: 6px;
+  margin-top: 6px;
 
 }
 #header{
@@ -69,15 +69,15 @@ span.tip{
   color:#EEE;
 }
 .nav input[type=button]{
-  display:inline-block;
+  border: 1px solid #000;
+
   background:#EEE;
-  border:1px solid #AAA;
-  width:150px;
-  height:20px;
+  width:100%;
 }
 
 canvas{
   border: 1px solid #AAA;
+  background: #FFF;
 }
 #target{
 
@@ -86,13 +86,13 @@ canvas{
   font-size: 13px;
 }
 #target._16{
-  width:395px;
+  width:370px;
 }
 #target._32{
-  width:775px;
+  width:750px;
 }
 #colorSelector,#left{
-  width: 100px;
+  width: 152px;
   display: inline-block;
 }
 #colorSelector .color{
@@ -103,7 +103,7 @@ canvas{
   margin:3px;
   padding:0;
 }
-#colorSelector .color:hover{
+#colorSelector div[name=cell]:hover{
   cursor: pointer;
   border:1px dashed #111;
 }
@@ -113,34 +113,45 @@ canvas{
   margin-right:20px;
   padding:0;
 }
-#target div{
+div[name=cell]{
   width:20px;
   height:20px;
-  margin:-2px -2px 0px 0px;
+  margin:-2px 1px 0px 0px;
   padding: 0;
   line-height: 0;
   display: inline-block;
   border:1px solid #DDD;
 }
-#target div:hover{
+div[name=cell]:hover{
   border: 1px dashed #AAA;
 }
 .emptyCell{
   background:url("/lib/img/faviconbuilder/emptycell.gif");
 }
 #toolSelector{
-  height:50px;
 }
-#toolSelector img{
+#toolSelector span{
   border:2px solid #666;
   width:32px;
+  height:32px;
   margin-right:6px;
+  display:inline-block;
 }
-#toolSelector img:hover{
+#toolSelector span:hover{
   border:2px dashed #666;
   cursor: pointer;
 }
-#toolSelector img.selected{
+#toolSelector span.selected{
   border:2px dashed #666;
-  background: #CCC;
+  background-color:rgb(0,100,100);
+}
+#toolSelector h5{
+  width: 152px;
+  height: auto;
+  display:inline-block;
+  text-align: justify;
+}
+.black{
+  background: #111;
+  color:#EEE;
 }
